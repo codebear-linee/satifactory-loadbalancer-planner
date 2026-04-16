@@ -1,3 +1,5 @@
+import { ContextMenu } from "./context-menu.js";
+
 export class SatisfactoryCanvas {
   #canvas;
   #zoomFactor = 1.1;
@@ -13,7 +15,7 @@ export class SatisfactoryCanvas {
   #offset = { x: 0, y: 0 };
   #scale = 1;
   #components = [];
-  #contextMenu = null;
+  #contextMenu;
 
   constructor(canvasElement) {
     this.#canvas = canvasElement;
@@ -23,6 +25,8 @@ export class SatisfactoryCanvas {
 
     this.#addZoomingBehavior();
     this.#addPanningBehavior();
+    this.#addDoubleClickBehavior();
+    this.#contextMenu = new ContextMenu();
   }
 
   redraw() {
@@ -39,6 +43,49 @@ export class SatisfactoryCanvas {
     }
 
     this.#ctx.restore();
+  }
+
+  #getWorldCoordinates(screenX, screenY) {
+    return {
+      x: (screenX - this.#offset.x) / this.#scale,
+      y: (screenY - this.#offset.y) / this.#scale,
+    };
+  }
+
+  #addComponentAtWorld(ComponentClass, worldX, worldY) {
+    const component = new ComponentClass(worldX, worldY);
+    this.#components.push(component);
+    this.redraw();
+  }
+
+  #getContextMenuOptions() {
+    return [
+      {
+        label: "Input",
+        action: (worldX, worldY) =>
+          this.#createComponent("Input", worldX, worldY),
+      },
+      {
+        label: "Output",
+        action: (worldX, worldY) =>
+          this.#createComponent("Output", worldX, worldY),
+      },
+      {
+        label: "Merger",
+        action: (worldX, worldY) =>
+          this.#createComponent("Merger", worldX, worldY),
+      },
+      {
+        label: "Splitter",
+        action: (worldX, worldY) =>
+          this.#createComponent("Splitter", worldX, worldY),
+      },
+      {
+        label: "Helper Input",
+        action: (worldX, worldY) =>
+          this.#createComponent("HelperInput", worldX, worldY),
+      },
+    ];
   }
 
   drawGrid() {
@@ -109,6 +156,40 @@ export class SatisfactoryCanvas {
 
     this.#canvas.addEventListener("mouseup", () => {
       this.#panning.isPanning = false;
+    });
+  }
+
+  #addDoubleClickBehavior() {
+    this.#canvas.addEventListener("dblclick", (e) => {
+      const screenX = e.clientX - this.#canvas.offsetLeft;
+      const screenY = e.clientY - this.#canvas.offsetTop;
+      const { x: worldX, y: worldY } = this.#getWorldCoordinates(
+        screenX,
+        screenY,
+      );
+
+      this.#contextMenu.show(
+        e.clientX,
+        e.clientY,
+        worldX,
+        worldY,
+        this.#getContextMenuOptions(),
+      );
+    });
+
+    // Close context menu on canvas click
+    this.#canvas.addEventListener("click", () => {
+      this.#contextMenu.close();
+    });
+  }
+
+  #createComponent(type, worldX, worldY) {
+    // Import dynamically to avoid circular dependency
+    import("./components.js").then((module) => {
+      const ComponentClass = module[type];
+      if (ComponentClass) {
+        this.#addComponentAtWorld(ComponentClass, worldX, worldY);
+      }
     });
   }
 }
