@@ -23,6 +23,7 @@ export class SatisfactoryCanvas {
 
     this.#addZoomingBehavior();
     this.#addPanningBehavior();
+    this.#addDoubleClickBehavior();
   }
 
   redraw() {
@@ -39,6 +40,19 @@ export class SatisfactoryCanvas {
     }
 
     this.#ctx.restore();
+  }
+
+  #getWorldCoordinates(screenX, screenY) {
+    return {
+      x: (screenX - this.#offset.x) / this.#scale,
+      y: (screenY - this.#offset.y) / this.#scale,
+    };
+  }
+
+  #addComponentAtWorld(ComponentClass, worldX, worldY) {
+    const component = new ComponentClass(worldX, worldY);
+    this.#components.push(component);
+    this.redraw();
   }
 
   drawGrid() {
@@ -109,6 +123,101 @@ export class SatisfactoryCanvas {
 
     this.#canvas.addEventListener("mouseup", () => {
       this.#panning.isPanning = false;
+    });
+  }
+
+  #addDoubleClickBehavior() {
+    this.#canvas.addEventListener("dblclick", (e) => {
+      const screenX = e.clientX - this.#canvas.offsetLeft;
+      const screenY = e.clientY - this.#canvas.offsetTop;
+      const { x: worldX, y: worldY } = this.#getWorldCoordinates(
+        screenX,
+        screenY,
+      );
+
+      this.#showContextMenu(e.clientX, e.clientY, worldX, worldY);
+    });
+
+    // Close context menu on canvas click
+    this.#canvas.addEventListener("click", () => {
+      this.#closeContextMenu();
+    });
+  }
+
+  #showContextMenu(screenX, screenY, worldX, worldY) {
+    this.#closeContextMenu();
+
+    const menu = document.createElement("div");
+    menu.style.position = "fixed";
+    menu.style.left = screenX + "px";
+    menu.style.top = screenY + "px";
+    menu.style.backgroundColor = "#fff";
+    menu.style.border = "1px solid #ccc";
+    menu.style.borderRadius = "4px";
+    menu.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+    menu.style.zIndex = "1000";
+    menu.style.minWidth = "120px";
+
+    const options = [
+      {
+        label: "Input",
+        action: () => this.#createComponent("Input", worldX, worldY),
+      },
+      {
+        label: "Output",
+        action: () => this.#createComponent("Output", worldX, worldY),
+      },
+      {
+        label: "Merger",
+        action: () => this.#createComponent("Merger", worldX, worldY),
+      },
+      {
+        label: "Splitter",
+        action: () => this.#createComponent("Splitter", worldX, worldY),
+      },
+      {
+        label: "Helper Input",
+        action: () => this.#createComponent("HelperInput", worldX, worldY),
+      },
+    ];
+
+    options.forEach((option) => {
+      const item = document.createElement("div");
+      item.textContent = option.label;
+      item.style.padding = "8px 12px";
+      item.style.cursor = "pointer";
+      item.style.userSelect = "none";
+      item.addEventListener("mouseenter", () => {
+        item.style.backgroundColor = "#f0f0f0";
+      });
+      item.addEventListener("mouseleave", () => {
+        item.style.backgroundColor = "#fff";
+      });
+      item.addEventListener("click", () => {
+        option.action();
+        this.#closeContextMenu();
+      });
+      menu.appendChild(item);
+    });
+
+    document.body.appendChild(menu);
+    this.#contextMenu = menu;
+  }
+
+  #closeContextMenu() {
+    if (this.#contextMenu) {
+      this.#contextMenu.remove();
+      this.#contextMenu = null;
+    }
+  }
+
+  #createComponent(type, worldX, worldY) {
+    // Import dynamically to avoid circular dependency
+    import("./components.js").then((module) => {
+      const ComponentClass = module[type];
+      if (ComponentClass) {
+        this.#addComponentAtWorld(ComponentClass, worldX, worldY);
+      }
     });
   }
 }
