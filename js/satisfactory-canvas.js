@@ -1,3 +1,5 @@
+import { ContextMenu } from "./context-menu.js";
+
 export class SatisfactoryCanvas {
   #canvas;
   #zoomFactor = 1.1;
@@ -13,7 +15,7 @@ export class SatisfactoryCanvas {
   #offset = { x: 0, y: 0 };
   #scale = 1;
   #components = [];
-  #contextMenu = null;
+  #contextMenu;
 
   constructor(canvasElement) {
     this.#canvas = canvasElement;
@@ -24,6 +26,7 @@ export class SatisfactoryCanvas {
     this.#addZoomingBehavior();
     this.#addPanningBehavior();
     this.#addDoubleClickBehavior();
+    this.#contextMenu = new ContextMenu();
   }
 
   redraw() {
@@ -53,6 +56,36 @@ export class SatisfactoryCanvas {
     const component = new ComponentClass(worldX, worldY);
     this.#components.push(component);
     this.redraw();
+  }
+
+  #getContextMenuOptions() {
+    return [
+      {
+        label: "Input",
+        action: (worldX, worldY) =>
+          this.#createComponent("Input", worldX, worldY),
+      },
+      {
+        label: "Output",
+        action: (worldX, worldY) =>
+          this.#createComponent("Output", worldX, worldY),
+      },
+      {
+        label: "Merger",
+        action: (worldX, worldY) =>
+          this.#createComponent("Merger", worldX, worldY),
+      },
+      {
+        label: "Splitter",
+        action: (worldX, worldY) =>
+          this.#createComponent("Splitter", worldX, worldY),
+      },
+      {
+        label: "Helper Input",
+        action: (worldX, worldY) =>
+          this.#createComponent("HelperInput", worldX, worldY),
+      },
+    ];
   }
 
   drawGrid() {
@@ -135,80 +168,19 @@ export class SatisfactoryCanvas {
         screenY,
       );
 
-      this.#showContextMenu(e.clientX, e.clientY, worldX, worldY);
+      this.#contextMenu.show(
+        e.clientX,
+        e.clientY,
+        worldX,
+        worldY,
+        this.#getContextMenuOptions(),
+      );
     });
 
     // Close context menu on canvas click
     this.#canvas.addEventListener("click", () => {
-      this.#closeContextMenu();
+      this.#contextMenu.close();
     });
-  }
-
-  #showContextMenu(screenX, screenY, worldX, worldY) {
-    this.#closeContextMenu();
-
-    const menu = document.createElement("div");
-    menu.style.position = "fixed";
-    menu.style.left = screenX + "px";
-    menu.style.top = screenY + "px";
-    menu.style.backgroundColor = "#fff";
-    menu.style.border = "1px solid #ccc";
-    menu.style.borderRadius = "4px";
-    menu.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-    menu.style.zIndex = "1000";
-    menu.style.minWidth = "120px";
-
-    const options = [
-      {
-        label: "Input",
-        action: () => this.#createComponent("Input", worldX, worldY),
-      },
-      {
-        label: "Output",
-        action: () => this.#createComponent("Output", worldX, worldY),
-      },
-      {
-        label: "Merger",
-        action: () => this.#createComponent("Merger", worldX, worldY),
-      },
-      {
-        label: "Splitter",
-        action: () => this.#createComponent("Splitter", worldX, worldY),
-      },
-      {
-        label: "Helper Input",
-        action: () => this.#createComponent("HelperInput", worldX, worldY),
-      },
-    ];
-
-    options.forEach((option) => {
-      const item = document.createElement("div");
-      item.textContent = option.label;
-      item.style.padding = "8px 12px";
-      item.style.cursor = "pointer";
-      item.style.userSelect = "none";
-      item.addEventListener("mouseenter", () => {
-        item.style.backgroundColor = "#f0f0f0";
-      });
-      item.addEventListener("mouseleave", () => {
-        item.style.backgroundColor = "#fff";
-      });
-      item.addEventListener("click", () => {
-        option.action();
-        this.#closeContextMenu();
-      });
-      menu.appendChild(item);
-    });
-
-    document.body.appendChild(menu);
-    this.#contextMenu = menu;
-  }
-
-  #closeContextMenu() {
-    if (this.#contextMenu) {
-      this.#contextMenu.remove();
-      this.#contextMenu = null;
-    }
   }
 
   #createComponent(type, worldX, worldY) {
