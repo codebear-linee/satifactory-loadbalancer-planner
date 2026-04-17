@@ -11,6 +11,15 @@ export class SatisfactoryCanvas {
     },
   };
 
+  #dragging = {
+    isDragging: false,
+    component: null,
+    offset: {
+      x: 0,
+      y: 0,
+    },
+  };
+
   #ctx;
   #offset = { x: 0, y: 0 };
   #scale = 1;
@@ -133,15 +142,46 @@ export class SatisfactoryCanvas {
   #addPanningBehavior() {
     this.#canvas.addEventListener("mousedown", (e) => {
       if (e.button === 0 && e.detail === 1) {
-        // Left click for pan (detail === 1 excludes double-click)
-        this.#panning.isPanning = true;
-        this.#panning.last.x = e.clientX;
-        this.#panning.last.y = e.clientY;
+        // Left click (detail === 1 excludes double-click)
+        const screenX = e.clientX - this.#canvas.offsetLeft;
+        const screenY = e.clientY - this.#canvas.offsetTop;
+        const { x: worldX, y: worldY } = this.#getWorldCoordinates(
+          screenX,
+          screenY,
+        );
+
+        const clickedComponent = this.#getClickedComponent(worldX, worldY);
+
+        if (clickedComponent) {
+          // Start dragging component
+          this.#dragging.isDragging = true;
+          this.#dragging.component = clickedComponent;
+          this.#dragging.offset.x = worldX - clickedComponent.x;
+          this.#dragging.offset.y = worldY - clickedComponent.y;
+        } else {
+          // Start panning
+          this.#panning.isPanning = true;
+          this.#panning.last.x = e.clientX;
+          this.#panning.last.y = e.clientY;
+        }
       }
     });
 
     this.#canvas.addEventListener("mousemove", (e) => {
-      if (this.#panning.isPanning) {
+      if (this.#dragging.isDragging && this.#dragging.component) {
+        // Drag component
+        const screenX = e.clientX - this.#canvas.offsetLeft;
+        const screenY = e.clientY - this.#canvas.offsetTop;
+        const { x: worldX, y: worldY } = this.#getWorldCoordinates(
+          screenX,
+          screenY,
+        );
+
+        this.#dragging.component.x = worldX - this.#dragging.offset.x;
+        this.#dragging.component.y = worldY - this.#dragging.offset.y;
+        this.redraw();
+      } else if (this.#panning.isPanning) {
+        // Pan canvas
         const dx = e.clientX - this.#panning.last.x;
         const dy = e.clientY - this.#panning.last.y;
         this.#offset.x += dx;
@@ -155,8 +195,19 @@ export class SatisfactoryCanvas {
     });
 
     this.#canvas.addEventListener("mouseup", () => {
+      this.#dragging.isDragging = false;
+      this.#dragging.component = null;
       this.#panning.isPanning = false;
     });
+  }
+
+  #getClickedComponent(worldX, worldY) {
+    for (const component of this.#components) {
+      if (component.contains(worldX, worldY)) {
+        return component;
+      }
+    }
+    return null;
   }
 
   #addDoubleClickBehavior() {
