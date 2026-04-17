@@ -150,14 +150,7 @@ export class SatisfactoryCanvas {
           screenY,
         );
 
-        // Check if clicked on a component
-        let clickedComponent = null;
-        for (const component of this.#components) {
-          if (component.contains(worldX, worldY)) {
-            clickedComponent = component;
-            break;
-          }
-        }
+        const clickedComponent = this.#getClickedComponent(worldX, worldY);
 
         if (clickedComponent) {
           // Start dragging component
@@ -206,6 +199,15 @@ export class SatisfactoryCanvas {
       this.#dragging.component = null;
       this.#panning.isPanning = false;
     });
+  }
+
+  #getClickedComponent(worldX, worldY) {
+    for (const component of this.#components) {
+      if (component.contains(worldX, worldY)) {
+        return component;
+      }
+    }
+    return null;
   }
 
   #addDoubleClickBehavior() {
