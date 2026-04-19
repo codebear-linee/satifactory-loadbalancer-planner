@@ -63,6 +63,7 @@ export class SatisfactoryCanvas {
 
   #addComponentAtWorld(ComponentClass, worldX, worldY) {
     const component = new ComponentClass(worldX, worldY);
+    component.updatePorts();
     this.#components.push(component);
     this.redraw();
   }
@@ -179,6 +180,7 @@ export class SatisfactoryCanvas {
 
         this.#dragging.component.x = worldX - this.#dragging.offset.x;
         this.#dragging.component.y = worldY - this.#dragging.offset.y;
+        this.#dragging.component.updatePorts();
         this.redraw();
       } else if (this.#panning.isPanning) {
         // Pan canvas
