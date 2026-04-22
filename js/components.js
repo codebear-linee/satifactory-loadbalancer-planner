@@ -1,9 +1,17 @@
+const uniqueId = () => {
+  const dateString = Date.now().toString(36);
+  const randomness = Math.random().toString(36).substr(2);
+  return dateString + randomness;
+};
+
 export class Component {
   constructor(x, y) {
+    this.id = uniqueId();
     this.x = x;
     this.y = y;
     this.portOrder = ["left", "top", "right", "bottom"];
     this.ports = [];
+    this.type = this.constructor.name;
   }
 
   draw(ctx) {
@@ -181,6 +189,7 @@ export class HelperInput extends Component {
 
 export class Port {
   constructor({ x, y, size }) {
+    this.id = uniqueId();
     this.parentComponentData = {
       x,
       y,
@@ -189,6 +198,16 @@ export class Port {
     this.x = x;
     this.y = y;
     this.size = 6;
+    this.type = this.constructor.name;
+  }
+
+  contains(x, y) {
+    return (
+      x >= this.x - this.size &&
+      x <= this.x + this.size &&
+      y >= this.y - this.size &&
+      y <= this.y + this.size
+    );
   }
 
   setParentPosition(x, y) {
@@ -267,7 +286,7 @@ export class Port {
         break;
     }
 
-    return defaultRotation + (this.type === "in" ? 0 : 180);
+    return defaultRotation + (this instanceof PortIn ? 0 : 180);
   }
 
   #drawTriangle(ctx, portX, portY, rotationDegrees = 0) {
@@ -290,16 +309,34 @@ export class Port {
   }
 }
 
-class PortIn extends Port {
-  constructor(x, y, position) {
-    super(x, y, position);
-    this.type = "in";
+export class PortIn extends Port {
+  constructor(parentComponentData) {
+    super(parentComponentData);
   }
 }
 
-class PortOut extends Port {
-  constructor(x, y, position) {
-    super(x, y, position);
-    this.type = "out";
+export class PortOut extends Port {
+  constructor(parentComponentData) {
+    super(parentComponentData);
+  }
+}
+
+export class Belt {
+  constructor(sourcePort, targetPort) {
+    this.id = uniqueId();
+    this.sourcePort = sourcePort;
+    this.targetPort = targetPort;
+  }
+
+  draw(ctx) {
+    const sourcePos = { x: this.sourcePort.x, y: this.sourcePort.y };
+    const targetPos = { x: this.targetPort.x, y: this.targetPort.y };
+
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sourcePos.x, sourcePos.y);
+    ctx.lineTo(targetPos.x, targetPos.y);
+    ctx.stroke();
   }
 }
