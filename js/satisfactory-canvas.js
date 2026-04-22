@@ -1,3 +1,4 @@
+import { Belt, HelperInput, PortOut } from "./components.js";
 import { ContextMenu } from "./context-menu.js";
 
 export class SatisfactoryCanvas {
@@ -19,6 +20,20 @@ export class SatisfactoryCanvas {
       y: 0,
     },
   };
+
+  #beltPulling = {
+    isPulling: false,
+    port: null,
+    offset: {
+      x: 0,
+      y: 0,
+    },
+    lineTo: {
+      x: null,
+      y: null,
+    },
+  };
+  #belts = [];
 
   #ctx;
   #offset = { x: 0, y: 0 };
@@ -46,15 +61,40 @@ export class SatisfactoryCanvas {
 
     this.drawGrid();
 
-    // Draw all components
+    if (this.#beltPulling.isPulling) {
+      this.#ctx.strokeStyle = "#000";
+      this.#ctx.lineWidth = 2;
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(this.#beltPulling.port.x, this.#beltPulling.port.y);
+      this.#ctx.lineTo(this.#beltPulling.lineTo.x, this.#beltPulling.lineTo.y);
+      this.#ctx.stroke();
+    }
+
     for (const component of this.#components) {
       component.draw(this.#ctx);
+    }
+
+    for (const belt of this.#belts) {
+      belt.draw(this.#ctx);
     }
 
     this.#ctx.restore();
   }
 
-  #getWorldCoordinates(screenX, screenY) {
+  #getScreenCoordinatesFromMouseEvent(e) {
+    return {
+      x: e.clientX - this.#canvas.offsetLeft,
+      y: e.clientY - this.#canvas.offsetTop,
+    };
+  }
+
+  #getWorldCoordinatesFromMouseEvent(e) {
+    const { x: screenX, y: screenY } =
+      this.#getScreenCoordinatesFromMouseEvent(e);
+    return this.#getWorldCoordinatesFromScreen(screenX, screenY);
+  }
+
+  #getWorldCoordinatesFromScreen(screenX, screenY) {
     return {
       x: (screenX - this.#offset.x) / this.#scale,
       y: (screenY - this.#offset.y) / this.#scale,
@@ -63,6 +103,7 @@ export class SatisfactoryCanvas {
 
   #addComponentAtWorld(ComponentClass, worldX, worldY) {
     const component = new ComponentClass(worldX, worldY);
+    component.updatePorts();
     this.#components.push(component);
     this.redraw();
   }
@@ -143,16 +184,39 @@ export class SatisfactoryCanvas {
     this.#canvas.addEventListener("mousedown", (e) => {
       if (e.button === 0 && e.detail === 1) {
         // Left click (detail === 1 excludes double-click)
-        const screenX = e.clientX - this.#canvas.offsetLeft;
-        const screenY = e.clientY - this.#canvas.offsetTop;
-        const { x: worldX, y: worldY } = this.#getWorldCoordinates(
-          screenX,
-          screenY,
+        const { x: worldX, y: worldY } =
+          this.#getWorldCoordinatesFromMouseEvent(e);
+
+        const clickedPort = this.#getPortByCoordinates(worldX, worldY);
+
+        const clickedComponent = this.#getComponentByCoordinates(
+          worldX,
+          worldY,
         );
 
-        const clickedComponent = this.#getClickedComponent(worldX, worldY);
-
-        if (clickedComponent) {
+        if (clickedPort) {
+          const beltInfo = this.#getBeltForPort(clickedPort);
+          if (beltInfo !== null) {
+            this.#beltPulling = {
+              isPulling: true,
+              port: beltInfo.otherPort,
+              offset: {
+                x: worldX - clickedPort.x,
+                y: worldY - clickedPort.y,
+              },
+            };
+            this.#removeBelt(beltInfo.belt);
+          } else {
+            this.#beltPulling = {
+              isPulling: true,
+              port: clickedPort,
+              offset: {
+                x: worldX - clickedPort.x,
+                y: worldY - clickedPort.y,
+              },
+            };
+          }
+        } else if (clickedComponent) {
           // Start dragging component
           this.#dragging.isDragging = true;
           this.#dragging.component = clickedComponent;
@@ -168,17 +232,22 @@ export class SatisfactoryCanvas {
     });
 
     this.#canvas.addEventListener("mousemove", (e) => {
-      if (this.#dragging.isDragging && this.#dragging.component) {
-        // Drag component
-        const screenX = e.clientX - this.#canvas.offsetLeft;
-        const screenY = e.clientY - this.#canvas.offsetTop;
-        const { x: worldX, y: worldY } = this.#getWorldCoordinates(
+      if (this.#beltPulling.isPulling && this.#beltPulling.port) {
+        const { x: screenX, y: screenY } =
+          this.#getScreenCoordinatesFromMouseEvent(e);
+        const { x: worldX, y: worldY } = this.#getWorldCoordinatesFromScreen(
           screenX,
           screenY,
         );
+        this.#beltPulling.lineTo = { x: screenX, y: screenY };
+        this.redraw();
+      } else if (this.#dragging.isDragging && this.#dragging.component) {
+        const { x: worldX, y: worldY } =
+          this.#getWorldCoordinatesFromMouseEvent(e);
 
         this.#dragging.component.x = worldX - this.#dragging.offset.x;
         this.#dragging.component.y = worldY - this.#dragging.offset.y;
+        this.#dragging.component.updatePorts();
         this.redraw();
       } else if (this.#panning.isPanning) {
         // Pan canvas
@@ -194,14 +263,76 @@ export class SatisfactoryCanvas {
       }
     });
 
-    this.#canvas.addEventListener("mouseup", () => {
+    this.#canvas.addEventListener("mouseup", (e) => {
       this.#dragging.isDragging = false;
       this.#dragging.component = null;
       this.#panning.isPanning = false;
+
+      if (this.#beltPulling.isPulling) {
+        const { x: worldX, y: worldY } =
+          this.#getWorldCoordinatesFromMouseEvent(e);
+        const clickedComponent = this.#getComponentByCoordinates(
+          worldX,
+          worldY,
+        );
+        let clickedPort = this.#getPortByCoordinates(worldX, worldY);
+
+        if (
+          clickedPort === null &&
+          clickedComponent !== null &&
+          clickedComponent instanceof HelperInput
+        ) {
+          const beltInfo = this.#getBeltForPort(clickedComponent.ports[0]);
+          if (beltInfo !== null) {
+            clickedPort = beltInfo.belt.targetPort;
+            this.#removeBelt(beltInfo.belt);
+            this.#removeComponent(clickedComponent);
+          }
+        }
+
+        if (clickedPort !== null) {
+          if (this.#isValidConnection(clickedPort)) {
+            const sourcePort =
+              clickedPort instanceof PortOut
+                ? clickedPort
+                : this.#beltPulling.port;
+            const targetPort =
+              sourcePort === clickedPort ? this.#beltPulling.port : clickedPort;
+
+            this.#createBelt(sourcePort, targetPort);
+          }
+        }
+
+        this.#beltPulling = {
+          isPulling: false,
+          port: null,
+          offset: {
+            x: 0,
+            y: 0,
+          },
+          lineTo: {
+            x: null,
+            y: null,
+          },
+        };
+      }
+
+      this.redraw();
     });
   }
 
-  #getClickedComponent(worldX, worldY) {
+  #createBelt(sourcePort, targetPort) {
+    this.#belts.push(new Belt(sourcePort, targetPort));
+  }
+
+  #removeBelt(belt) {
+    this.#belts.splice(
+      this.#belts.findIndex((_belt) => _belt === belt),
+      1,
+    );
+  }
+
+  #getComponentByCoordinates(worldX, worldY) {
     for (const component of this.#components) {
       if (component.contains(worldX, worldY)) {
         return component;
@@ -210,14 +341,66 @@ export class SatisfactoryCanvas {
     return null;
   }
 
+  #getPortById(id) {
+    for (const component of this.#components) {
+      for (const port of component.ports) {
+        if (port.id === id) {
+          return port;
+        }
+      }
+    }
+    return null;
+  }
+
+  #getPortByCoordinates(worldX, worldY) {
+    for (const component of this.#components) {
+      for (const port of component.ports) {
+        if (port.contains(worldX, worldY)) {
+          return port;
+        }
+      }
+    }
+    return null;
+  }
+
+  #isValidConnection(port) {
+    if (this.#beltPulling.port.type === port.type) {
+      return false;
+    }
+
+    for (const belt of this.#belts) {
+      if (belt.sourcePort === port || belt.targetPort === port) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  #getBeltForPort(port) {
+    for (const belt of this.#belts) {
+      if (belt.sourcePort === port) {
+        return {
+          belt,
+          otherPort: belt.targetPort,
+        };
+      }
+
+      if (belt.targetPort === port) {
+        return {
+          belt,
+          otherPort: belt.sourcePort,
+        };
+      }
+    }
+
+    return null;
+  }
+
   #addDoubleClickBehavior() {
     this.#canvas.addEventListener("dblclick", (e) => {
-      const screenX = e.clientX - this.#canvas.offsetLeft;
-      const screenY = e.clientY - this.#canvas.offsetTop;
-      const { x: worldX, y: worldY } = this.#getWorldCoordinates(
-        screenX,
-        screenY,
-      );
+      const { x: worldX, y: worldY } =
+        this.#getWorldCoordinatesFromMouseEvent(e);
 
       this.#contextMenu.show(
         e.clientX,
@@ -242,5 +425,12 @@ export class SatisfactoryCanvas {
         this.#addComponentAtWorld(ComponentClass, worldX, worldY);
       }
     });
+  }
+
+  #removeComponent(component) {
+    this.#components.splice(
+      this.#components.findIndex((_component) => _component === component),
+      1,
+    );
   }
 }
