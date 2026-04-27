@@ -9,16 +9,16 @@ export class Component {
     this.id = uniqueId();
     this.x = x;
     this.y = y;
-    this.portOrder = ["left", "top", "right", "bottom"];
+    this.portOrder = ['left', 'top', 'right', 'bottom'];
     this.ports = [];
     this.type = this.constructor.name;
   }
 
-  draw(ctx) {
+  draw(_ctx) {
     // Base draw method - override in subclasses
   }
 
-  contains(x, y) {
+  contains(_x, _y) {
     // Check if point is within component bounds
     return false;
   }
@@ -44,16 +44,16 @@ export class Input extends Component {
     this.rate = 100; // configurable items per minute
     this.size = 40;
     this.ports = [new PortOut({ x, y, size: this.size })];
-    this.portOrder = ["right"];
+    this.portOrder = ['right'];
   }
 
   draw(ctx) {
-    ctx.fillStyle = "#4CAF50";
+    ctx.fillStyle = '#4CAF50';
     ctx.fillRect(this.x, this.y, this.size, this.size);
-    ctx.fillStyle = "#000";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("IN", this.x + this.size / 2, this.y + this.size / 2 + 4);
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('IN', this.x + this.size / 2, this.y + this.size / 2 + 4);
     this.drawPorts(ctx);
   }
 
@@ -75,12 +75,12 @@ export class Output extends Component {
   }
 
   draw(ctx) {
-    ctx.fillStyle = "#FF5722";
+    ctx.fillStyle = '#FF5722';
     ctx.fillRect(this.x, this.y, this.size, this.size);
-    ctx.fillStyle = "#000";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("OUT", this.x + this.size / 2, this.y + this.size / 2 + 4);
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('OUT', this.x + this.size / 2, this.y + this.size / 2 + 4);
     this.drawPorts(ctx);
   }
 
@@ -107,12 +107,12 @@ export class Merger extends Component {
   }
 
   draw(ctx) {
-    ctx.fillStyle = "#2196F3";
+    ctx.fillStyle = '#2196F3';
     ctx.fillRect(this.x, this.y, this.size, this.size);
-    ctx.fillStyle = "#000";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("M", this.x + this.size / 2, this.y + this.size / 2 + 4);
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('M', this.x + this.size / 2, this.y + this.size / 2 + 4);
     this.drawPorts(ctx);
   }
 
@@ -139,12 +139,12 @@ export class Splitter extends Component {
   }
 
   draw(ctx) {
-    ctx.fillStyle = "#FF9800";
+    ctx.fillStyle = '#FF9800';
     ctx.fillRect(this.x, this.y, this.size, this.size);
-    ctx.fillStyle = "#000";
-    ctx.font = "12px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("S", this.x + this.size / 2, this.y + this.size / 2 + 4);
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('S', this.x + this.size / 2, this.y + this.size / 2 + 4);
     this.drawPorts(ctx);
   }
 
@@ -164,16 +164,16 @@ export class HelperInput extends Component {
     this.rate = 0; // helper inputs start at 0
     this.size = 40;
     this.ports = [new PortOut({ x, y, size: this.size })];
-    this.portOrder = ["right"];
+    this.portOrder = ['right'];
   }
 
   draw(ctx) {
-    ctx.fillStyle = "#9C27B0";
+    ctx.fillStyle = '#9C27B0';
     ctx.fillRect(this.x, this.y, this.size, this.size);
-    ctx.fillStyle = "#000";
-    ctx.font = "10px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("HI", this.x + this.size / 2, this.y + this.size / 2 + 4);
+    ctx.fillStyle = '#000';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('HI', this.x + this.size / 2, this.y + this.size / 2 + 4);
     this.drawPorts(ctx);
   }
 
@@ -245,13 +245,13 @@ export class Port {
 
   #getPortCoordinates(position) {
     switch (position) {
-      case "top":
+      case 'top':
         return this.getTopMiddle();
-      case "left":
+      case 'left':
         return this.getLeftMiddle();
-      case "right":
+      case 'right':
         return this.getRightMiddle();
-      case "bottom":
+      case 'bottom':
         return this.getBottomMiddle();
       default:
         return this.getRightMiddle();
@@ -273,13 +273,13 @@ export class Port {
     let defaultRotation = 0;
 
     switch (position) {
-      case "top":
+      case 'top':
         defaultRotation = 90;
         break;
-      case "right":
+      case 'right':
         defaultRotation = 180;
         break;
-      case "bottom":
+      case 'bottom':
         defaultRotation = -90;
         break;
       default:
@@ -296,7 +296,7 @@ export class Port {
     ctx.translate(portX, portY); // Move origin to triangle center
     ctx.rotate(angle); // Rotate around the new origin
 
-    ctx.fillStyle = "#333";
+    ctx.fillStyle = '#333';
     ctx.beginPath();
     // Draw triangle relative to (0,0) now
     ctx.moveTo(-this.size, -this.size);
@@ -332,7 +332,7 @@ export class Belt {
     const sourcePos = { x: this.sourcePort.x, y: this.sourcePort.y };
     const targetPos = { x: this.targetPort.x, y: this.targetPort.y };
 
-    ctx.strokeStyle = "#000";
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(sourcePos.x, sourcePos.y);

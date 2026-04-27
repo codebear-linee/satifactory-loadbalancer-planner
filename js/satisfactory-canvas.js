@@ -1,5 +1,5 @@
-import { Belt, HelperInput, PortOut } from "./components.js";
-import { ContextMenu } from "./context-menu.js";
+import { Belt, HelperInput, PortOut } from './components.js';
+import { ContextMenu } from './context-menu.js';
 
 export class SatisfactoryCanvas {
   #canvas;
@@ -45,7 +45,7 @@ export class SatisfactoryCanvas {
     this.#canvas = canvasElement;
     this.#canvas.width = window.innerWidth;
     this.#canvas.height = window.innerHeight;
-    this.#ctx = this.#canvas.getContext("2d");
+    this.#ctx = this.#canvas.getContext('2d');
 
     this.#addZoomingBehavior();
     this.#addPanningBehavior();
@@ -62,7 +62,7 @@ export class SatisfactoryCanvas {
     this.drawGrid();
 
     if (this.#beltPulling.isPulling) {
-      this.#ctx.strokeStyle = "#000";
+      this.#ctx.strokeStyle = '#000';
       this.#ctx.lineWidth = 2;
       this.#ctx.beginPath();
       this.#ctx.moveTo(this.#beltPulling.port.x, this.#beltPulling.port.y);
@@ -111,29 +111,29 @@ export class SatisfactoryCanvas {
   #getContextMenuOptions() {
     return [
       {
-        label: "Input",
+        label: 'Input',
         action: (worldX, worldY) =>
-          this.#createComponent("Input", worldX, worldY),
+          this.#createComponent('Input', worldX, worldY),
       },
       {
-        label: "Output",
+        label: 'Output',
         action: (worldX, worldY) =>
-          this.#createComponent("Output", worldX, worldY),
+          this.#createComponent('Output', worldX, worldY),
       },
       {
-        label: "Merger",
+        label: 'Merger',
         action: (worldX, worldY) =>
-          this.#createComponent("Merger", worldX, worldY),
+          this.#createComponent('Merger', worldX, worldY),
       },
       {
-        label: "Splitter",
+        label: 'Splitter',
         action: (worldX, worldY) =>
-          this.#createComponent("Splitter", worldX, worldY),
+          this.#createComponent('Splitter', worldX, worldY),
       },
       {
-        label: "Helper Input",
+        label: 'Helper Input',
         action: (worldX, worldY) =>
-          this.#createComponent("HelperInput", worldX, worldY),
+          this.#createComponent('HelperInput', worldX, worldY),
       },
     ];
   }
@@ -152,14 +152,14 @@ export class SatisfactoryCanvas {
       for (let y = startY; y < endY; y += gridSize) {
         const isEven =
           (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 2 === 0;
-        this.#ctx.fillStyle = isEven ? "#f0f0f0" : "#ffffff";
+        this.#ctx.fillStyle = isEven ? '#f0f0f0' : '#ffffff';
         this.#ctx.fillRect(x, y, gridSize, gridSize);
       }
     }
   }
 
   #addZoomingBehavior() {
-    this.#canvas.addEventListener("wheel", (e) => {
+    this.#canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const mouseX = e.clientX - this.#canvas.offsetLeft;
       const mouseY = e.clientY - this.#canvas.offsetTop;
@@ -181,7 +181,7 @@ export class SatisfactoryCanvas {
   }
 
   #addPanningBehavior() {
-    this.#canvas.addEventListener("mousedown", (e) => {
+    this.#canvas.addEventListener('mousedown', (e) => {
       if (e.button === 0 && e.detail === 1) {
         // Left click (detail === 1 excludes double-click)
         const { x: worldX, y: worldY } =
@@ -231,14 +231,10 @@ export class SatisfactoryCanvas {
       }
     });
 
-    this.#canvas.addEventListener("mousemove", (e) => {
+    this.#canvas.addEventListener('mousemove', (e) => {
       if (this.#beltPulling.isPulling && this.#beltPulling.port) {
         const { x: screenX, y: screenY } =
           this.#getScreenCoordinatesFromMouseEvent(e);
-        const { x: worldX, y: worldY } = this.#getWorldCoordinatesFromScreen(
-          screenX,
-          screenY,
-        );
         this.#beltPulling.lineTo = { x: screenX, y: screenY };
         this.redraw();
       } else if (this.#dragging.isDragging && this.#dragging.component) {
@@ -263,7 +259,7 @@ export class SatisfactoryCanvas {
       }
     });
 
-    this.#canvas.addEventListener("mouseup", (e) => {
+    this.#canvas.addEventListener('mouseup', (e) => {
       this.#dragging.isDragging = false;
       this.#dragging.component = null;
       this.#panning.isPanning = false;
@@ -341,17 +337,6 @@ export class SatisfactoryCanvas {
     return null;
   }
 
-  #getPortById(id) {
-    for (const component of this.#components) {
-      for (const port of component.ports) {
-        if (port.id === id) {
-          return port;
-        }
-      }
-    }
-    return null;
-  }
-
   #getPortByCoordinates(worldX, worldY) {
     for (const component of this.#components) {
       for (const port of component.ports) {
@@ -398,7 +383,7 @@ export class SatisfactoryCanvas {
   }
 
   #addDoubleClickBehavior() {
-    this.#canvas.addEventListener("dblclick", (e) => {
+    this.#canvas.addEventListener('dblclick', (e) => {
       const { x: worldX, y: worldY } =
         this.#getWorldCoordinatesFromMouseEvent(e);
 
@@ -412,14 +397,14 @@ export class SatisfactoryCanvas {
     });
 
     // Close context menu on canvas click
-    this.#canvas.addEventListener("click", () => {
+    this.#canvas.addEventListener('click', () => {
       this.#contextMenu.close();
     });
   }
 
   #createComponent(type, worldX, worldY) {
     // Import dynamically to avoid circular dependency
-    import("./components.js").then((module) => {
+    import('./components.js').then((module) => {
       const ComponentClass = module[type];
       if (ComponentClass) {
         this.#addComponentAtWorld(ComponentClass, worldX, worldY);
