@@ -14,11 +14,11 @@ export class Component {
     this.type = this.constructor.name;
   }
 
-  draw(ctx) {
+  draw(_ctx) {
     // Base draw method - override in subclasses
   }
 
-  contains(x, y) {
+  contains(_x, _y) {
     // Check if point is within component bounds
     return false;
   }

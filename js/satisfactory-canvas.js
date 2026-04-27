@@ -235,10 +235,6 @@ export class SatisfactoryCanvas {
       if (this.#beltPulling.isPulling && this.#beltPulling.port) {
         const { x: screenX, y: screenY } =
           this.#getScreenCoordinatesFromMouseEvent(e);
-        const { x: worldX, y: worldY } = this.#getWorldCoordinatesFromScreen(
-          screenX,
-          screenY,
-        );
         this.#beltPulling.lineTo = { x: screenX, y: screenY };
         this.redraw();
       } else if (this.#dragging.isDragging && this.#dragging.component) {
@@ -336,17 +332,6 @@ export class SatisfactoryCanvas {
     for (const component of this.#components) {
       if (component.contains(worldX, worldY)) {
         return component;
-      }
-    }
-    return null;
-  }
-
-  #getPortById(id) {
-    for (const component of this.#components) {
-      for (const port of component.ports) {
-        if (port.id === id) {
-          return port;
-        }
       }
     }
     return null;

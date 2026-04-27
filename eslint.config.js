@@ -13,9 +13,8 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
-        browser: 'readonly',
-        node: 'readonly',
-        es2021: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
       },
     },
     rules: {
