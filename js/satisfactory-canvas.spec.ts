@@ -1,4 +1,4 @@
-import { fireEvent, getByText } from '@testing-library/dom';
+import { fireEvent, getByText, queryByText } from '@testing-library/dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SatisfactoryCanvas } from './satisfactory-canvas-2';
 
@@ -133,7 +133,10 @@ describe('Satisfactory Canvas', () => {
   });
 
   describe('interacting', () => {
-    describe('double clicking', () => {
+    describe('context menu display', () => {
+      afterEach(() => {
+        document.querySelectorAll('.context-menu').forEach((el) => el.remove());
+      });
       it('shows a context menu with all options', () => {
         fireEvent.doubleClick(mockCanvasElement, {
           clientX: 100,
@@ -145,6 +148,33 @@ describe('Satisfactory Canvas', () => {
         expect(getByText(document.body, 'Input')).toBeDefined();
         expect(getByText(document.body, 'Helper Input')).toBeDefined();
         expect(getByText(document.body, 'Output')).toBeDefined();
+      });
+
+      it('hides the context menu when clicking again somewhere outside the context menu', async () => {
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: 100,
+          clientY: 100,
+        });
+        expect(getByText(document.body, 'Splitter')).toBeDefined();
+
+        fireEvent.click(mockCanvasElement, {
+          clientX: 75,
+          clientY: 75,
+        });
+
+        expect(queryByText(document.body, 'Splitter')).toBeNull();
+      });
+
+      it('hides the context menu when clicking one of the options', async () => {
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: 100,
+          clientY: 100,
+        });
+        const optionToClick = getByText(document.body, 'Splitter');
+
+        fireEvent.click(optionToClick);
+
+        expect(queryByText(document.body, 'Splitter')).toBeNull();
       });
     });
   });
