@@ -67,6 +67,23 @@ describe('Satisfactory Canvas', () => {
           expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
         },
       );
+
+      it('does not pan when not clicking the canvas first', () => {
+        const initialPanningImage = satisfactoryCanvas.getImage();
+
+        fireEvent.mouseMove(mockCanvasElement, {
+          clientX: 100,
+          clientY: 100,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: 100,
+          clientY: 100,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toStrictEqual(
+          initialPanningImage,
+        );
+      });
     });
 
     describe('zooming', () => {
