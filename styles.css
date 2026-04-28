@@ -6,3 +6,30 @@ body {
 #canvas {
   display: block;
 }
+
+.context-menu {
+  position: fixed;
+  left: var(--context-menu-x);
+  top: var(--context-menu-y);
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 120px;
+
+  .context-menu-option {
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+    list-style-type: none;
+    padding: 8px 12px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #f0f0f0;
+    }
+  }
+}

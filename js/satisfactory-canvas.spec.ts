@@ -1,5 +1,5 @@
-import { fireEvent } from '@testing-library/dom';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { fireEvent, getByText } from '@testing-library/dom';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SatisfactoryCanvas } from './satisfactory-canvas-2';
 
 describe('Satisfactory Canvas', () => {
@@ -10,6 +10,10 @@ describe('Satisfactory Canvas', () => {
     mockCanvasElement = document.createElement('canvas');
     document.body.appendChild(mockCanvasElement);
     satisfactoryCanvas = new SatisfactoryCanvas(mockCanvasElement);
+  });
+
+  afterEach(() => {
+    mockCanvasElement.remove();
   });
 
   it('has the size of the window', () => {
@@ -124,6 +128,23 @@ describe('Satisfactory Canvas', () => {
         fireEvent.wheel(mockCanvasElement, zoomOutEvent);
 
         expect(satisfactoryCanvas.getImage()).toStrictEqual(initialZoomImage);
+      });
+    });
+  });
+
+  describe('interacting', () => {
+    describe('double clicking', () => {
+      it('shows a context menu with all options', () => {
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: 100,
+          clientY: 100,
+        });
+
+        expect(getByText(document.body, 'Splitter')).toBeDefined();
+        expect(getByText(document.body, 'Merger')).toBeDefined();
+        expect(getByText(document.body, 'Input')).toBeDefined();
+        expect(getByText(document.body, 'Helper Input')).toBeDefined();
+        expect(getByText(document.body, 'Output')).toBeDefined();
       });
     });
   });

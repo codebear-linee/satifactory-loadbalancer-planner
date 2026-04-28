@@ -1,4 +1,5 @@
 import { PanningData, Position, ZoomingData } from './models';
+import { ContextMenu } from './visual-elements';
 
 export class SatisfactoryCanvas {
   private readonly ctx: CanvasRenderingContext2D;
@@ -21,9 +22,7 @@ export class SatisfactoryCanvas {
     this.ctx = this.canvasElement.getContext('2d')!;
     this.addPanningBehavior();
     this.addZoomingBehavior();
-
-    // this.#addDoubleClickBehavior();
-    // this.#contextMenu = new ContextMenu();
+    this.addContextInteraction();
 
     this.redraw();
   }
@@ -49,6 +48,56 @@ export class SatisfactoryCanvas {
     this.ctx.save();
     this.ctx.translate(this.offset.x, this.offset.y);
     this.ctx.scale(this.scale, this.scale);
+  }
+
+  private addContextInteraction() {
+    const contextMenu = new ContextMenu();
+
+    this.canvasElement.addEventListener('dblclick', (e) => {
+      const screenPosition = this.getScreenCoordinatesFromMouseEvent(e);
+
+      const worldPosition =
+        this.getWorldCoordinatesFromScreenPosition(screenPosition);
+
+      contextMenu.show(screenPosition, [
+        {
+          label: 'Splitter',
+          callbackData: { worldPosition },
+          action: (params) => console.log('Splitter', params),
+        },
+        {
+          label: 'Merger',
+          callbackData: { worldPosition },
+          action: (params) => console.log('Merger', params),
+        },
+        {
+          label: 'Input',
+          callbackData: { worldPosition },
+          action: (params) => console.log('Input', params),
+        },
+        {
+          label: 'Helper Input',
+          callbackData: { worldPosition },
+          action: (params) => console.log('Helper Input', params),
+        },
+        {
+          label: 'Output',
+          callbackData: { worldPosition },
+          action: (params) => console.log('Output', params),
+        },
+      ]);
+    });
+
+    this.canvasElement.addEventListener('click', () => {
+      contextMenu.close();
+    });
+  }
+
+  private getScreenCoordinatesFromMouseEvent(e: MouseEvent) {
+    return {
+      x: e.clientX - this.canvasElement.offsetLeft,
+      y: e.clientY - this.canvasElement.offsetTop,
+    };
   }
 
   private addZoomingBehavior() {
