@@ -1,0 +1,113 @@
+import { fireEvent } from '@testing-library/dom';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { SatisfactoryCanvas } from './satisfactory-canvas-2';
+
+describe('Satisfactory Canvas', () => {
+  let satisfactoryCanvas: SatisfactoryCanvas;
+  let mockCanvasElement: HTMLCanvasElement;
+
+  beforeEach(() => {
+    mockCanvasElement = document.createElement('canvas');
+    document.body.appendChild(mockCanvasElement);
+    satisfactoryCanvas = new SatisfactoryCanvas(mockCanvasElement);
+  });
+
+  it('has the size of the window', () => {
+    expect(mockCanvasElement.width).toBe(window.innerWidth);
+    expect(mockCanvasElement.height).toBe(window.innerHeight);
+  });
+
+  it('has a background pattern', () => {
+    expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+  });
+
+  describe('navigating', () => {
+    describe('panning', () => {
+      it.each([
+        {
+          start: { x: 100, y: 100 },
+          end: { x: 113, y: 100 },
+          panDirection: 'left',
+          dragDirection: 'right',
+        },
+        {
+          start: { x: 100, y: 100 },
+          end: { x: 87, y: 100 },
+          panDirection: 'right',
+          dragDirection: 'left',
+        },
+        {
+          start: { x: 100, y: 100 },
+          end: { x: 100, y: 113 },
+          panDirection: 'top',
+          dragDirection: 'bottom',
+        },
+        {
+          start: { x: 100, y: 100 },
+          end: { x: 100, y: 87 },
+          panDirection: 'bottom',
+          dragDirection: 'top',
+        },
+      ])(
+        'pans to the $panDirection, when mouse is clicked and dragged to the $dragDirection',
+        ({ start, end }) => {
+          fireEvent.mouseDown(mockCanvasElement, {
+            clientX: start.x,
+            clientY: start.y,
+          });
+          fireEvent.mouseMove(mockCanvasElement, {
+            clientX: end.x,
+            clientY: end.y,
+          });
+          fireEvent.mouseUp(mockCanvasElement, {
+            clientX: end.x,
+            clientY: end.y,
+          });
+
+          expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        },
+      );
+    });
+
+    describe('zooming', () => {
+      const zoomInEvent = {
+        deltaY: -100,
+      };
+      const zoomOutEvent = {
+        deltaY: 100,
+      };
+      it('zooms in by one tick', () => {
+        fireEvent.wheel(mockCanvasElement, zoomInEvent);
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+      it('zooms in by multiple ticks', () => {
+        fireEvent.wheel(mockCanvasElement, zoomInEvent);
+        fireEvent.wheel(mockCanvasElement, zoomInEvent);
+        fireEvent.wheel(mockCanvasElement, zoomInEvent);
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+      it('zooms out by one tick', () => {
+        fireEvent.wheel(mockCanvasElement, zoomOutEvent);
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+      it('zooms out by multiple ticks', () => {
+        fireEvent.wheel(mockCanvasElement, zoomOutEvent);
+        fireEvent.wheel(mockCanvasElement, zoomOutEvent);
+        fireEvent.wheel(mockCanvasElement, zoomOutEvent);
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+      it('zoom-in and zoom-out intervals are equal', () => {
+        const initialZoomImage = satisfactoryCanvas.getImage();
+
+        fireEvent.wheel(mockCanvasElement, zoomInEvent);
+        fireEvent.wheel(mockCanvasElement, zoomOutEvent);
+
+        expect(satisfactoryCanvas.getImage()).toStrictEqual(initialZoomImage);
+      });
+    });
+  });
+});
