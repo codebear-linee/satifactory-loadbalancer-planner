@@ -76,18 +76,6 @@ export class SatisfactoryCanvas {
     });
   }
 
-  private getWorldCoordinatesFromMouseEvent(e: MouseEvent): Position {
-    const screenPos = this.getScreenCoordinatesFromMouseEvent(e);
-    return this.getWorldCoordinatesFromScreenPosition(screenPos);
-  }
-
-  private getScreenCoordinatesFromMouseEvent(e: MouseEvent): Position {
-    return {
-      x: e.clientX - this.canvasElement.offsetLeft,
-      y: e.clientY - this.canvasElement.offsetTop,
-    };
-  }
-
   private getWorldCoordinatesFromScreenPosition(pos: Position): Position {
     return {
       x: (pos.x - this.offset.x) / this.scale,
