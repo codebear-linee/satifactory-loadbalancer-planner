@@ -22,8 +22,9 @@ export type ContextMenuSelectOption = {
 
 export type IDrawableComponent = {
   id: string;
-  moveTo(position: Position): void;
   draw(context: CanvasRenderingContext2D): void;
+  moveTo(position: Position): void;
+  setPorts(ports: Array<Port>): void;
 };
 
 export type ComponentType =
@@ -32,3 +33,8 @@ export type ComponentType =
   | 'Input'
   | 'Helper Input'
   | 'Output';
+
+export type Port = {
+  id: string;
+  parentId: string;
+};

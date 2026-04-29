@@ -14,5 +14,9 @@ export class HelperInput extends DrawableComponent {
       this.position.x + this.size / 2,
       this.position.y + this.size / 2 + 4,
     );
+
+    this.ports.forEach((port, index) => {
+      this.drawPort(context, port, index + 2);
+    });
   }
 }
