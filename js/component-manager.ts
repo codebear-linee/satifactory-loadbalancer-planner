@@ -30,7 +30,7 @@ export class ComponentManager {
         component = new Output();
         break;
       default:
-        throw new Error(`${componentType} not implemented`);
+        throw new Error(`'${componentType}' not implemented`);
     }
 
     this.drawableComponent.set(component.id, component);
