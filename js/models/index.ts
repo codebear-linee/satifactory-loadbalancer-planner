@@ -19,3 +19,16 @@ export type ContextMenuSelectOption = {
   callbackData: OptionCallbackParams;
   action: (params: OptionCallbackParams) => void;
 };
+
+export type IDrawableComponent = {
+  id: string;
+  moveTo(position: Position): void;
+  draw(context: CanvasRenderingContext2D): void;
+};
+
+export type ComponentType =
+  | 'Splitter'
+  | 'Merger'
+  | 'Input'
+  | 'Helper Input'
+  | 'Output';

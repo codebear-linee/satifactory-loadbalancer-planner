@@ -150,7 +150,7 @@ describe('Satisfactory Canvas', () => {
         expect(getByText(document.body, 'Output')).toBeDefined();
       });
 
-      it('hides the context menu when clicking again somewhere outside the context menu', async () => {
+      it('hides the context menu when clicking again somewhere outside the context menu', () => {
         fireEvent.doubleClick(mockCanvasElement, {
           clientX: 100,
           clientY: 100,
@@ -165,7 +165,7 @@ describe('Satisfactory Canvas', () => {
         expect(queryByText(document.body, 'Splitter')).toBeNull();
       });
 
-      it('hides the context menu when clicking one of the options', async () => {
+      it('hides the context menu when clicking one of the options', () => {
         fireEvent.doubleClick(mockCanvasElement, {
           clientX: 100,
           clientY: 100,
@@ -175,6 +175,26 @@ describe('Satisfactory Canvas', () => {
         fireEvent.click(optionToClick);
 
         expect(queryByText(document.body, 'Splitter')).toBeNull();
+      });
+
+      describe('context menu options', () => {
+        it.each([
+          { component: 'Splitter' },
+          { component: 'Merger' },
+          { component: 'Input' },
+          { component: 'Helper Input' },
+          { component: 'Output' },
+        ])('creates a $component', ({ component }) => {
+          fireEvent.doubleClick(mockCanvasElement, {
+            clientX: 100,
+            clientY: 100,
+          });
+          const optionToClick = getByText(document.body, component);
+
+          fireEvent.click(optionToClick);
+
+          expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        });
       });
     });
   });

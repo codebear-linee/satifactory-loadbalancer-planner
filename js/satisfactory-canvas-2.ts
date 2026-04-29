@@ -1,8 +1,11 @@
-import { PanningData, Position, ZoomingData } from './models';
+import { ComponentManager } from './component-manager';
+import { ComponentType, PanningData, Position, ZoomingData } from './models';
 import { ContextMenu } from './visual-elements';
 
 export class SatisfactoryCanvas {
   private readonly ctx: CanvasRenderingContext2D;
+
+  private readonly componentManager = new ComponentManager();
 
   private panning: PanningData = {
     isPanning: false,
@@ -35,6 +38,10 @@ export class SatisfactoryCanvas {
     this.resetCanvas();
 
     this.drawGrid();
+
+    this.componentManager.drawableComponent.forEach((component) => {
+      component.draw(this.ctx);
+    });
   }
 
   private resetCanvas() {
@@ -63,27 +70,32 @@ export class SatisfactoryCanvas {
         {
           label: 'Splitter',
           callbackData: { worldPosition },
-          action: (params) => console.log('Splitter', params),
+          action: (params) =>
+            this.createComponent('Splitter', params.worldPosition),
         },
         {
           label: 'Merger',
           callbackData: { worldPosition },
-          action: (params) => console.log('Merger', params),
+          action: (params) =>
+            this.createComponent('Merger', params.worldPosition),
         },
         {
           label: 'Input',
           callbackData: { worldPosition },
-          action: (params) => console.log('Input', params),
+          action: (params) =>
+            this.createComponent('Input', params.worldPosition),
         },
         {
           label: 'Helper Input',
           callbackData: { worldPosition },
-          action: (params) => console.log('Helper Input', params),
+          action: (params) =>
+            this.createComponent('Helper Input', params.worldPosition),
         },
         {
           label: 'Output',
           callbackData: { worldPosition },
-          action: (params) => console.log('Output', params),
+          action: (params) =>
+            this.createComponent('Output', params.worldPosition),
         },
       ]);
     });
@@ -91,6 +103,12 @@ export class SatisfactoryCanvas {
     this.canvasElement.addEventListener('click', () => {
       contextMenu.close();
     });
+  }
+
+  private createComponent(type: ComponentType, worldPosition: Position) {
+    const component = this.componentManager.createComponent(type);
+    component.moveTo(worldPosition);
+    this.redraw();
   }
 
   private getScreenCoordinatesFromMouseEvent(e: MouseEvent) {
