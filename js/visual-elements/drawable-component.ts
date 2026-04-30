@@ -4,7 +4,10 @@ import { uniqueId } from '../util';
 
 export abstract class DrawableComponent implements IDrawableComponent {
   public readonly id = uniqueId();
-  protected position: Position = { x: 0, y: 0 };
+  public get position() {
+    return this._position;
+  }
+  protected _position: Position = { x: 0, y: 0 };
   protected size = 60;
   protected portSize = 6;
   protected ports: Array<Port> = [];
@@ -14,36 +17,45 @@ export abstract class DrawableComponent implements IDrawableComponent {
   }
 
   public moveTo(position: Position) {
-    this.position = position;
+    this._position = position;
   }
 
   public abstract draw(context: CanvasRenderingContext2D): void;
 
+  public contains({ x, y }: Position) {
+    return (
+      x >= this._position.x - this.size &&
+      x <= this._position.x + this.size &&
+      y >= this._position.y - this.size &&
+      y <= this._position.y + this.size
+    );
+  }
+
   protected getTopMiddle() {
     return {
-      x: this.position.x + this.size / 2,
-      y: this.position.y,
+      x: this._position.x + this.size / 2,
+      y: this._position.y,
     };
   }
 
   protected getLeftMiddle() {
     return {
-      x: this.position.x,
-      y: this.position.y + this.size / 2,
+      x: this._position.x,
+      y: this._position.y + this.size / 2,
     };
   }
 
   protected getRightMiddle() {
     return {
-      x: this.position.x + this.size,
-      y: this.position.y + this.size / 2,
+      x: this._position.x + this.size,
+      y: this._position.y + this.size / 2,
     };
   }
 
   protected getBottomMiddle() {
     return {
-      x: this.position.x + this.size / 2,
-      y: this.position.y + this.size,
+      x: this._position.x + this.size / 2,
+      y: this._position.y + this.size,
     };
   }
 

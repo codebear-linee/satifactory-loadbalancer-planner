@@ -1,5 +1,5 @@
 import { InputPort, OutputPort } from './logical-elements';
-import { ComponentType, IDrawableComponent, Port } from './models';
+import { ComponentType, IDrawableComponent, Port, Position } from './models';
 import {
   HelperInput,
   Input,
@@ -55,5 +55,14 @@ export class ComponentManager {
     this.drawableComponent.set(component.id, component);
 
     return component;
+  }
+
+  public getComponentByPosition(position: Position) {
+    for (const [, component] of this.drawableComponent) {
+      if (component.contains(position)) {
+        return component;
+      }
+    }
+    return null;
   }
 }

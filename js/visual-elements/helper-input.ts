@@ -5,14 +5,14 @@ export class HelperInput extends DrawableComponent {
 
   public draw(context: CanvasRenderingContext2D) {
     context.fillStyle = '#9C27B0';
-    context.fillRect(this.position.x, this.position.y, this.size, this.size);
+    context.fillRect(this._position.x, this._position.y, this.size, this.size);
     context.fillStyle = '#000';
     context.font = '12px Arial';
     context.textAlign = 'center';
     context.fillText(
       'H',
-      this.position.x + this.size / 2,
-      this.position.y + this.size / 2 + 4,
+      this._position.x + this.size / 2,
+      this._position.y + this.size / 2 + 4,
     );
 
     this.ports.forEach((port, index) => {

@@ -1,5 +1,11 @@
 import { ComponentManager } from './component-manager';
-import { ComponentType, PanningData, Position, ZoomingData } from './models';
+import {
+  ComponentDraggingData,
+  ComponentType,
+  PanningData,
+  Position,
+  ZoomingData,
+} from './models';
 import { ContextMenu } from './visual-elements';
 
 export class SatisfactoryCanvas {
@@ -11,6 +17,13 @@ export class SatisfactoryCanvas {
     isPanning: false,
     lastPosition: { x: 0, y: 0 },
   };
+
+  private componentDragging: ComponentDraggingData = {
+    isDragging: false,
+    componentId: '',
+    offset: { x: 0, y: 0 },
+  };
+
   private zooming: ZoomingData = {
     zoomFactor: 1.1,
   };
@@ -26,6 +39,7 @@ export class SatisfactoryCanvas {
     this.addPanningBehavior();
     this.addZoomingBehavior();
     this.addContextInteraction();
+    this.addComponentDragBehavior();
 
     this.redraw();
   }
@@ -112,22 +126,24 @@ export class SatisfactoryCanvas {
   }
 
   private getScreenCoordinatesFromMouseEvent(e: MouseEvent) {
-    return {
-      x: e.clientX - this.canvasElement.offsetLeft,
-      y: e.clientY - this.canvasElement.offsetTop,
-    };
+    return this.subtractPosition(this.getMousePositionFromEvent(e), {
+      x: this.canvasElement.offsetLeft,
+      y: this.canvasElement.offsetTop,
+    });
+  }
+
+  private getMousePositionFromEvent(e: MouseEvent): Position {
+    return { x: e.clientX, y: e.clientY };
   }
 
   private addZoomingBehavior() {
     this.canvasElement.addEventListener('wheel', (e) => {
       e.preventDefault();
 
-      const mousePosition: Position = {
-        x: e.clientX - this.canvasElement.offsetLeft,
-        y: e.clientY - this.canvasElement.offsetTop,
-      };
+      const screenPosition: Position =
+        this.getScreenCoordinatesFromMouseEvent(e);
       const { x: worldX, y: worldY } =
-        this.getWorldCoordinatesFromScreenPosition(mousePosition);
+        this.getWorldCoordinatesFromScreenPosition(screenPosition);
 
       this.scale =
         e.deltaY < 0
@@ -135,8 +151,8 @@ export class SatisfactoryCanvas {
           : (this.scale /= this.zooming.zoomFactor);
 
       this.offset = {
-        x: mousePosition.x - worldX * this.scale,
-        y: mousePosition.y - worldY * this.scale,
+        x: screenPosition.x - worldX * this.scale,
+        y: screenPosition.y - worldY * this.scale,
       };
 
       this.redraw();
@@ -150,18 +166,90 @@ export class SatisfactoryCanvas {
     };
   }
 
-  private addPanningBehavior() {
-    this.canvasElement.addEventListener('mousedown', (e) => {
-      e.preventDefault();
+  private getWorldCoordinatesFromMouseEvent(e: MouseEvent) {
+    const screenPosition = this.getScreenCoordinatesFromMouseEvent(e);
+    return this.getWorldCoordinatesFromScreenPosition(screenPosition);
+  }
 
+  private handleMouseDownEvent(e: MouseEvent) {
+    e.preventDefault();
+
+    const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+    const component =
+      this.componentManager.getComponentByPosition(worldPosition);
+
+    if (component === null) {
       this.panning = {
         isPanning: true,
-        lastPosition: {
-          x: e.clientX,
-          y: e.clientY,
-        },
+        lastPosition: this.getMousePositionFromEvent(e),
+      };
+    } else {
+      const offset = this.subtractPosition(worldPosition, component.position);
+
+      this.componentDragging = {
+        isDragging: true,
+        componentId: component.id,
+        offset,
+      };
+    }
+  }
+
+  private subtractPosition(pos1: Position, pos2: Position): Position {
+    return {
+      x: pos1.x - pos2.x,
+      y: pos1.y - pos2.y,
+    };
+  }
+
+  private addComponentDragBehavior() {
+    this.canvasElement.addEventListener(
+      'mousedown',
+      this.handleMouseDownEvent.bind(this),
+    );
+
+    this.canvasElement.addEventListener('mousemove', (e) => {
+      e.preventDefault();
+
+      if (this.componentDragging.isDragging) {
+        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+        this.componentManager.drawableComponent
+          .get(this.componentDragging.componentId)
+          ?.moveTo(
+            this.subtractPosition(worldPosition, this.componentDragging.offset),
+          );
+        this.redraw();
+      }
+    });
+
+    this.canvasElement.addEventListener('mouseup', (e) => {
+      e.preventDefault();
+
+      if (this.componentDragging.isDragging) {
+        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+        this.componentManager.drawableComponent
+          .get(this.componentDragging.componentId)
+          ?.moveTo(
+            this.subtractPosition(worldPosition, this.componentDragging.offset),
+          );
+        this.redraw();
+      }
+
+      this.componentDragging = {
+        isDragging: false,
+        componentId: '',
+        offset: { x: 0, y: 0 },
       };
     });
+  }
+
+  private addPanningBehavior() {
+    this.canvasElement.addEventListener(
+      'mousedown',
+      this.handleMouseDownEvent.bind(this),
+    );
 
     this.canvasElement.addEventListener('mousemove', (e) => {
       e.preventDefault();
@@ -190,18 +278,18 @@ export class SatisfactoryCanvas {
   }
 
   private updateOffsetForPanning(e: MouseEvent) {
-    const dx = e.clientX - this.panning.lastPosition.x;
-    const dy = e.clientY - this.panning.lastPosition.y;
+    const mousePosition = this.getMousePositionFromEvent(e);
+    const delta = this.subtractPosition(
+      mousePosition,
+      this.panning.lastPosition,
+    );
 
     this.offset = {
-      x: this.offset.x + dx,
-      y: this.offset.y + dy,
+      x: this.offset.x + delta.x,
+      y: this.offset.y + delta.y,
     };
 
-    this.panning.lastPosition = {
-      x: e.clientX,
-      y: e.clientY,
-    };
+    this.panning.lastPosition = mousePosition;
   }
 
   private drawGrid() {

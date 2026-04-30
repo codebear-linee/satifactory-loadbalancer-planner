@@ -88,6 +88,32 @@ describe('Satisfactory Canvas', () => {
           initialPanningImage,
         );
       });
+
+      it('pans when a component is present, but background was clicked', () => {
+        const elPos = { x: 100, y: 100 };
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: elPos.x,
+          clientY: elPos.y,
+        });
+        const optionToClick = getByText(document.body, 'Splitter');
+
+        fireEvent.click(optionToClick);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: elPos.x + 100,
+          clientY: elPos.y + 100,
+        });
+        fireEvent.mouseMove(mockCanvasElement, {
+          clientX: 213,
+          clientY: 317,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: 213,
+          clientY: 317,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
     });
 
     describe('zooming', () => {
@@ -195,6 +221,34 @@ describe('Satisfactory Canvas', () => {
 
           expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
         });
+      });
+    });
+
+    describe('moving components', () => {
+      it('moves component, when dragging it', () => {
+        const elPos = { x: 100, y: 100 };
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: elPos.x,
+          clientY: elPos.y,
+        });
+        const optionToClick = getByText(document.body, 'Splitter');
+
+        fireEvent.click(optionToClick);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: elPos.x + 5,
+          clientY: elPos.y + 5,
+        });
+        fireEvent.mouseMove(mockCanvasElement, {
+          clientX: 317,
+          clientY: 317,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: 317,
+          clientY: 317,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
       });
     });
   });
