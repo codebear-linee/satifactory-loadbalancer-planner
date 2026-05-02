@@ -1,5 +1,5 @@
 import { InputPort } from '../logical-elements';
-import { IDrawableComponent, Port, Position } from '../models';
+import { IDrawableComponent, Port, PortIndex, Position } from '../models';
 import { uniqueId } from '../util';
 
 export abstract class DrawableComponent implements IDrawableComponent {
@@ -11,6 +11,7 @@ export abstract class DrawableComponent implements IDrawableComponent {
   protected size = 60;
   protected portSize = 6;
   protected ports: Array<Port> = [];
+  protected portPositionStartIndex: PortIndex = PortIndex.LEFT;
 
   public setPorts(ports: Array<Port>) {
     this.ports = ports;
@@ -59,22 +60,46 @@ export abstract class DrawableComponent implements IDrawableComponent {
     };
   }
 
+  private getPortPosition(portIndex: number): Position {
+    const positionOfInterestIndex = portIndex + this.portPositionStartIndex;
+    return positionOfInterestIndex === 0
+      ? this.getLeftMiddle()
+      : positionOfInterestIndex === 1
+        ? this.getTopMiddle()
+        : positionOfInterestIndex === 2
+          ? this.getRightMiddle()
+          : this.getBottomMiddle();
+  }
+
+  public getPortByPosition(position: Position) {
+    for (let portIndex = 0; portIndex < this.ports.length; portIndex++) {
+      const portPosition = this.getPortPosition(portIndex);
+      if (this.isInPortArea(position, portPosition)) {
+        return { port: this.ports[portIndex], position: portPosition };
+      }
+    }
+    return null;
+  }
+
+  private isInPortArea({ x, y }: Position, portPosition: Position): boolean {
+    return (
+      x >= portPosition.x - this.portSize &&
+      x <= portPosition.x + this.portSize &&
+      y >= portPosition.y - this.portSize &&
+      y <= portPosition.y + this.portSize
+    );
+  }
+
   protected drawPort(
     context: CanvasRenderingContext2D,
     port: Port,
     portIndex: number,
   ) {
-    const portPosition =
-      portIndex === 0
-        ? this.getLeftMiddle()
-        : portIndex === 1
-          ? this.getTopMiddle()
-          : portIndex === 2
-            ? this.getRightMiddle()
-            : this.getBottomMiddle();
+    const portPosition = this.getPortPosition(portIndex);
 
     const rotationDegrees =
-      portIndex * 90 + (port instanceof InputPort ? 0 : 180);
+      (portIndex + this.portPositionStartIndex) * 90 +
+      (port instanceof InputPort ? 0 : 180);
 
     const angle = (rotationDegrees * Math.PI) / 180; // Convert to radians
 

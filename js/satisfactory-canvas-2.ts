@@ -1,12 +1,23 @@
 import { ComponentManager } from './component-manager';
+import { InputPort } from './logical-elements';
 import {
   ComponentDraggingData,
   ComponentType,
+  IDrawableComponent,
   PanningData,
+  Port,
+  PortByPositionInfo,
   Position,
   ZoomingData,
 } from './models';
-import { ContextMenu } from './visual-elements';
+import { ContextMenu, HelperInput } from './visual-elements';
+
+type ConnectionDraggingData = {
+  isDragging: boolean;
+  startPort: Port | null;
+  startPosition: Position;
+  currentMousePosition: Position;
+};
 
 export class SatisfactoryCanvas {
   private readonly ctx: CanvasRenderingContext2D;
@@ -22,6 +33,19 @@ export class SatisfactoryCanvas {
     isDragging: false,
     componentId: '',
     offset: { x: 0, y: 0 },
+  };
+
+  private connectionDragging: ConnectionDraggingData = {
+    isDragging: false,
+    startPort: null,
+    startPosition: {
+      x: 0,
+      y: 0,
+    },
+    currentMousePosition: {
+      x: 0,
+      y: 0,
+    },
   };
 
   private zooming: ZoomingData = {
@@ -40,12 +64,114 @@ export class SatisfactoryCanvas {
     this.addZoomingBehavior();
     this.addContextInteraction();
     this.addComponentDragBehavior();
+    this.addBeltDragBehavior();
 
     this.redraw();
   }
 
   public getImage(): string {
     return this.canvasElement.toDataURL('image/png');
+  }
+
+  private addBeltDragBehavior() {
+    this.canvasElement.addEventListener(
+      'mousedown',
+      this.handleMouseDownEvent.bind(this),
+    );
+
+    this.canvasElement.addEventListener('mousemove', (e) => {
+      e.preventDefault();
+
+      const currentMousePosition = this.getMousePositionFromEvent(e);
+
+      if (this.connectionDragging.isDragging) {
+        this.connectionDragging = {
+          ...this.connectionDragging,
+          currentMousePosition,
+        };
+        this.redraw();
+      }
+    });
+
+    this.canvasElement.addEventListener('mouseup', (e) => {
+      e.preventDefault();
+
+      if (this.connectionDragging.isDragging) {
+        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+        const elementInfo =
+          this.componentManager.getElementByPosition(worldPosition);
+        console.log(elementInfo);
+
+        if (this.isValidConnectionTarget(elementInfo)) {
+          // add new belt when released position is valid
+          console.log('add new belt when released position is valid');
+        }
+        this.connectionDragging = {
+          isDragging: false,
+          startPort: null,
+          startPosition: { x: 0, y: 0 },
+          currentMousePosition: { x: 0, y: 0 },
+        };
+
+        this.redraw();
+      }
+    });
+  }
+
+  private isValidConnectionTarget(elementInfo: {
+    component: IDrawableComponent | null;
+    portInfo: PortByPositionInfo | null;
+  }): boolean {
+    return (
+      elementInfo &&
+      (elementInfo.component instanceof HelperInput ||
+        (elementInfo.portInfo !== null &&
+          elementInfo.portInfo.port instanceof InputPort))
+    );
+  }
+
+  private addComponentDragBehavior() {
+    this.canvasElement.addEventListener(
+      'mousedown',
+      this.handleMouseDownEvent.bind(this),
+    );
+
+    this.canvasElement.addEventListener('mousemove', (e) => {
+      e.preventDefault();
+
+      if (this.componentDragging.isDragging) {
+        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+        this.componentManager.drawableComponent
+          .get(this.componentDragging.componentId)
+          ?.moveTo(
+            this.subtractPosition(worldPosition, this.componentDragging.offset),
+          );
+        this.redraw();
+      }
+    });
+
+    this.canvasElement.addEventListener('mouseup', (e) => {
+      e.preventDefault();
+
+      if (this.componentDragging.isDragging) {
+        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+        this.componentManager.drawableComponent
+          .get(this.componentDragging.componentId)
+          ?.moveTo(
+            this.subtractPosition(worldPosition, this.componentDragging.offset),
+          );
+        this.redraw();
+      }
+
+      this.componentDragging = {
+        isDragging: false,
+        componentId: '',
+        offset: { x: 0, y: 0 },
+      };
+    });
   }
 
   private redraw() {
@@ -56,6 +182,23 @@ export class SatisfactoryCanvas {
     this.componentManager.drawableComponent.forEach((component) => {
       component.draw(this.ctx);
     });
+
+    this.drawDraggingConnection();
+  }
+
+  private drawDraggingConnection() {
+    if (this.connectionDragging.isDragging) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(
+        this.connectionDragging.startPosition.x,
+        this.connectionDragging.startPosition.y,
+      );
+      this.ctx.lineTo(
+        this.connectionDragging.currentMousePosition.x,
+        this.connectionDragging.currentMousePosition.y,
+      );
+      this.ctx.stroke();
+    }
   }
 
   private resetCanvas() {
@@ -176,21 +319,28 @@ export class SatisfactoryCanvas {
 
     const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
 
-    const component =
-      this.componentManager.getComponentByPosition(worldPosition);
+    const { component, portInfo } =
+      this.componentManager.getElementByPosition(worldPosition);
 
-    if (component === null) {
-      this.panning = {
-        isPanning: true,
-        lastPosition: this.getMousePositionFromEvent(e),
+    if (portInfo !== null) {
+      this.connectionDragging = {
+        isDragging: true,
+        startPort: portInfo.port,
+        startPosition: portInfo.position,
+        currentMousePosition: worldPosition,
       };
-    } else {
+    } else if (component !== null) {
       const offset = this.subtractPosition(worldPosition, component.position);
 
       this.componentDragging = {
         isDragging: true,
         componentId: component.id,
         offset,
+      };
+    } else {
+      this.panning = {
+        isPanning: true,
+        lastPosition: this.getMousePositionFromEvent(e),
       };
     }
   }
@@ -200,49 +350,6 @@ export class SatisfactoryCanvas {
       x: pos1.x - pos2.x,
       y: pos1.y - pos2.y,
     };
-  }
-
-  private addComponentDragBehavior() {
-    this.canvasElement.addEventListener(
-      'mousedown',
-      this.handleMouseDownEvent.bind(this),
-    );
-
-    this.canvasElement.addEventListener('mousemove', (e) => {
-      e.preventDefault();
-
-      if (this.componentDragging.isDragging) {
-        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
-
-        this.componentManager.drawableComponent
-          .get(this.componentDragging.componentId)
-          ?.moveTo(
-            this.subtractPosition(worldPosition, this.componentDragging.offset),
-          );
-        this.redraw();
-      }
-    });
-
-    this.canvasElement.addEventListener('mouseup', (e) => {
-      e.preventDefault();
-
-      if (this.componentDragging.isDragging) {
-        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
-
-        this.componentManager.drawableComponent
-          .get(this.componentDragging.componentId)
-          ?.moveTo(
-            this.subtractPosition(worldPosition, this.componentDragging.offset),
-          );
-        this.redraw();
-      }
-
-      this.componentDragging = {
-        isDragging: false,
-        componentId: '',
-        offset: { x: 0, y: 0 },
-      };
-    });
   }
 
   private addPanningBehavior() {

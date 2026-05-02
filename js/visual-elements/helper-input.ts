@@ -1,6 +1,8 @@
+import { PortIndex } from '../models';
 import { DrawableComponent } from './drawable-component';
 
 export class HelperInput extends DrawableComponent {
+  portPositionStartIndex = PortIndex.RIGHT;
   size = 40;
 
   public draw(context: CanvasRenderingContext2D) {
@@ -16,7 +18,7 @@ export class HelperInput extends DrawableComponent {
     );
 
     this.ports.forEach((port, index) => {
-      this.drawPort(context, port, index + 2);
+      this.drawPort(context, port, index);
     });
   }
 }

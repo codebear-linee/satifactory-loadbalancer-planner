@@ -20,6 +20,11 @@ export type ContextMenuSelectOption = {
   action: (params: OptionCallbackParams) => void;
 };
 
+export type PortByPositionInfo = {
+  port: Port;
+  position: Position;
+};
+
 export type IDrawableComponent = {
   id: string;
   position: Position;
@@ -27,6 +32,7 @@ export type IDrawableComponent = {
   moveTo(position: Position): void;
   setPorts(ports: Array<Port>): void;
   contains(position: Position): boolean;
+  getPortByPosition(position: Position): PortByPositionInfo | null;
 };
 
 export type ComponentType =
@@ -46,3 +52,10 @@ export type ComponentDraggingData = {
   componentId: string;
   offset: Position;
 };
+
+export enum PortIndex {
+  LEFT = 0,
+  UP = 1,
+  RIGHT = 2,
+  DOWN = 3,
+}
