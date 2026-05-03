@@ -60,7 +60,7 @@ export abstract class DrawableComponent implements IDrawableComponent {
     };
   }
 
-  private getPortPosition(portIndex: number): Position {
+  private getPortPositionByIndex(portIndex: number): Position {
     const positionOfInterestIndex = portIndex + this.portPositionStartIndex;
     return positionOfInterestIndex === 0
       ? this.getLeftMiddle()
@@ -73,7 +73,7 @@ export abstract class DrawableComponent implements IDrawableComponent {
 
   public getPortByPosition(position: Position) {
     for (let portIndex = 0; portIndex < this.ports.length; portIndex++) {
-      const portPosition = this.getPortPosition(portIndex);
+      const portPosition = this.getPortPositionByIndex(portIndex);
       if (this.isInPortArea(position, portPosition)) {
         return { port: this.ports[portIndex], position: portPosition };
       }
@@ -95,7 +95,7 @@ export abstract class DrawableComponent implements IDrawableComponent {
     port: Port,
     portIndex: number,
   ) {
-    const portPosition = this.getPortPosition(portIndex);
+    const portPosition = this.getPortPositionByIndex(portIndex);
 
     const rotationDegrees =
       (portIndex + this.portPositionStartIndex) * 90 +
@@ -117,5 +117,21 @@ export abstract class DrawableComponent implements IDrawableComponent {
     context.fill();
 
     context.restore(); // Restore original state
+  }
+
+  public getPortPosition(port: Port): Position {
+    for (let index = 0; index < this.ports.length; index++) {
+      const componentPort = this.ports[index];
+      if (componentPort.id === port.id) {
+        return this.getPortPositionByIndex(index);
+      }
+    }
+    throw new Error(
+      `Port '${port.id}' is not part of this component. Possible ports are ${this.ports.map((port) => port.id).join(', ')}`,
+    );
+  }
+
+  public getPortByIndex(index: number): Port {
+    return this.ports[index];
   }
 }

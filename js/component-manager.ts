@@ -77,4 +77,12 @@ export class ComponentManager {
     }
     return { component: null, portInfo: null };
   }
+
+  public getPortPosition(port: Port): Position {
+    return this.drawableComponent.get(port.parentId)!.getPortPosition(port);
+  }
+
+  public removeComponent(component: IDrawableComponent) {
+    this.drawableComponent.delete(component.id);
+  }
 }

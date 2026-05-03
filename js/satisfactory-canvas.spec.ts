@@ -1,10 +1,26 @@
 import { fireEvent, getByText, queryByText } from '@testing-library/dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  Mock,
+  vi,
+} from 'vitest';
 import { SatisfactoryCanvas } from './satisfactory-canvas-2';
 
 describe('Satisfactory Canvas', () => {
   let satisfactoryCanvas: SatisfactoryCanvas;
   let mockCanvasElement: HTMLCanvasElement;
+
+  const windowInnerWidthSpy: Mock<() => number> = vi
+    .spyOn(window, 'innerWidth', 'get')
+    .mockImplementation(() => 400);
+  const windowInnerHeightSpy: Mock<() => number> = vi
+    .spyOn(window, 'innerHeight', 'get')
+    .mockImplementation(() => 400);
 
   beforeEach(() => {
     mockCanvasElement = document.createElement('canvas');
@@ -14,6 +30,11 @@ describe('Satisfactory Canvas', () => {
 
   afterEach(() => {
     mockCanvasElement.remove();
+  });
+
+  afterAll(() => {
+    windowInnerWidthSpy.mockClear();
+    windowInnerHeightSpy.mockClear();
   });
 
   it('has the size of the window', () => {
@@ -246,6 +267,291 @@ describe('Satisfactory Canvas', () => {
         fireEvent.mouseUp(mockCanvasElement, {
           clientX: 317,
           clientY: 317,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+    });
+
+    describe('connecting components', () => {
+      const drawMerger = (x: number, y: number) => {
+        const size = 60;
+        const pos = { x, y };
+        const inPort1 = {
+          x: pos.x,
+          y: pos.y + size / 2,
+        };
+        const inPort2 = {
+          x: pos.x + size / 2,
+          y: pos.y,
+        };
+
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: pos.x,
+          clientY: pos.y,
+        });
+        const mergerOption = getByText(document.body, 'Merger');
+
+        fireEvent.click(mergerOption);
+
+        return {
+          size,
+          pos,
+          inPort1,
+          inPort2,
+        };
+      };
+
+      const drawSplitter = (x: number, y: number) => {
+        const size = 60;
+        const pos = { x, y };
+        const outPort2 = {
+          x: pos.x + size,
+          y: pos.y + size / 2,
+        };
+        const inPort = {
+          x: pos.x,
+          y: pos.y + size / 2,
+        };
+
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: pos.x,
+          clientY: pos.y,
+        });
+        const splitterOption = getByText(document.body, 'Splitter');
+
+        fireEvent.click(splitterOption);
+
+        return {
+          size,
+          pos,
+          outPort2,
+          inPort,
+        };
+      };
+
+      const drawHelperInput = (x: number, y: number) => {
+        const size = 40;
+        const pos = { x, y };
+        const outPort = {
+          x: pos.x + size,
+          y: pos.y + size / 2,
+        };
+
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: pos.x,
+          clientY: pos.y,
+        });
+        const splitterOption = getByText(document.body, 'Helper Input');
+
+        fireEvent.click(splitterOption);
+
+        return {
+          size,
+          pos,
+          outPort,
+        };
+      };
+
+      const drawInput = (x: number, y: number) => {
+        const size = 40;
+        const pos = { x, y };
+        const outPort = {
+          x: pos.x + size,
+          y: pos.y + size / 2,
+        };
+
+        fireEvent.doubleClick(mockCanvasElement, {
+          clientX: pos.x,
+          clientY: pos.y,
+        });
+        const splitterOption = getByText(document.body, 'Input');
+
+        fireEvent.click(splitterOption);
+
+        return {
+          size,
+          pos,
+          outPort,
+        };
+      };
+
+      it('drags line from clicked port to current mouse position', () => {
+        const splitterInfo = drawSplitter(100, 100);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseMove(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x + 40,
+          clientY: splitterInfo.outPort2.y + 20,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+      it('connects two ports with a line when connected', () => {
+        const splitterInfo = drawSplitter(100, 100);
+        const mergerInfo = drawMerger(200, 200);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: mergerInfo.pos.x + 5,
+          clientY: mergerInfo.pos.y + 5,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.pos.x + mergerInfo.size + 50,
+          clientY: mergerInfo.pos.y + mergerInfo.size - 70,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+
+      it('replaces helper input connection with direct connection, when belt is released on a helper input', () => {
+        const splitterInfo = drawSplitter(100, 100);
+        const mergerInfo = drawMerger(200, 200);
+        const helperInputInfo = drawHelperInput(150, 10);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: helperInputInfo.outPort.x,
+          clientY: helperInputInfo.outPort.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: helperInputInfo.pos.x + 5,
+          clientY: helperInputInfo.pos.y + 5,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+
+      it('detaches connection, when clicking an already connected port', () => {
+        const splitterInfo = drawSplitter(100, 100);
+        const mergerInfo = drawMerger(200, 200);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+        fireEvent.mouseMove(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x + 40,
+          clientY: splitterInfo.outPort2.y + 20,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+
+      it('connects to a new port, when releasing on a valid port type', () => {
+        const splitterInfo = drawSplitter(100, 100);
+        const mergerInfo = drawMerger(200, 200);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort2.x,
+          clientY: mergerInfo.inPort2.y,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+
+      it('does not connect to a new port, when releasing on an invalid port type', () => {
+        const splitterInfo = drawSplitter(100, 100);
+        const mergerInfo = drawMerger(200, 200);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: splitterInfo.inPort.x,
+          clientY: splitterInfo.inPort.y,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+
+      it('does not connect to a new port, when releasing on a port that is already connected', () => {
+        const splitterInfo = drawSplitter(100, 100);
+        const mergerInfo = drawMerger(200, 200);
+        const inputInfo = drawInput(150, 10);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: inputInfo.outPort.x,
+          clientY: inputInfo.outPort.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: mergerInfo.inPort1.x,
+          clientY: mergerInfo.inPort1.y,
+        });
+
+        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+      });
+
+      it('does not connect to a port, that belongs to the same component', () => {
+        const splitterInfo = drawSplitter(100, 100);
+
+        fireEvent.mouseDown(mockCanvasElement, {
+          clientX: splitterInfo.outPort2.x,
+          clientY: splitterInfo.outPort2.y,
+        });
+        fireEvent.mouseUp(mockCanvasElement, {
+          clientX: splitterInfo.inPort.x,
+          clientY: splitterInfo.inPort.y,
         });
 
         expect(satisfactoryCanvas.getImage()).toMatchSnapshot();

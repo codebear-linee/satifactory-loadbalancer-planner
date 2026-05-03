@@ -1,5 +1,6 @@
 import { ComponentManager } from './component-manager';
-import { InputPort } from './logical-elements';
+import { ConnectionManager } from './connection-manager';
+import { InputPort, OutputPort } from './logical-elements';
 import {
   ComponentDraggingData,
   ComponentType,
@@ -23,6 +24,7 @@ export class SatisfactoryCanvas {
   private readonly ctx: CanvasRenderingContext2D;
 
   private readonly componentManager = new ComponentManager();
+  private readonly connectionManager = new ConnectionManager();
 
   private panning: PanningData = {
     isPanning: false,
@@ -60,11 +62,11 @@ export class SatisfactoryCanvas {
     this.canvasElement.height = window.innerHeight;
 
     this.ctx = this.canvasElement.getContext('2d')!;
-    this.addPanningBehavior();
+    this.handleMouseDownEvent();
+    this.handleMouseMoveEvent();
+    this.handleMouseUpEvent();
     this.addZoomingBehavior();
     this.addContextInteraction();
-    this.addComponentDragBehavior();
-    this.addBeltDragBehavior();
 
     this.redraw();
   }
@@ -73,105 +75,30 @@ export class SatisfactoryCanvas {
     return this.canvasElement.toDataURL('image/png');
   }
 
-  private addBeltDragBehavior() {
-    this.canvasElement.addEventListener(
-      'mousedown',
-      this.handleMouseDownEvent.bind(this),
-    );
+  private isValidConnectionTarget(
+    elementInfo: {
+      component: IDrawableComponent | null;
+      portInfo: PortByPositionInfo | null;
+    },
+    fromPort: Port,
+  ): boolean {
+    if (elementInfo.component !== null) {
+      return elementInfo.component instanceof HelperInput;
+    }
 
-    this.canvasElement.addEventListener('mousemove', (e) => {
-      e.preventDefault();
+    const portsAreDifferentTypes =
+      (fromPort instanceof InputPort &&
+        elementInfo.portInfo?.port instanceof OutputPort) ||
+      (fromPort instanceof OutputPort &&
+        elementInfo.portInfo?.port instanceof InputPort);
 
-      const currentMousePosition = this.getMousePositionFromEvent(e);
-
-      if (this.connectionDragging.isDragging) {
-        this.connectionDragging = {
-          ...this.connectionDragging,
-          currentMousePosition,
-        };
-        this.redraw();
-      }
-    });
-
-    this.canvasElement.addEventListener('mouseup', (e) => {
-      e.preventDefault();
-
-      if (this.connectionDragging.isDragging) {
-        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
-
-        const elementInfo =
-          this.componentManager.getElementByPosition(worldPosition);
-        console.log(elementInfo);
-
-        if (this.isValidConnectionTarget(elementInfo)) {
-          // add new belt when released position is valid
-          console.log('add new belt when released position is valid');
-        }
-        this.connectionDragging = {
-          isDragging: false,
-          startPort: null,
-          startPosition: { x: 0, y: 0 },
-          currentMousePosition: { x: 0, y: 0 },
-        };
-
-        this.redraw();
-      }
-    });
-  }
-
-  private isValidConnectionTarget(elementInfo: {
-    component: IDrawableComponent | null;
-    portInfo: PortByPositionInfo | null;
-  }): boolean {
     return (
       elementInfo &&
-      (elementInfo.component instanceof HelperInput ||
-        (elementInfo.portInfo !== null &&
-          elementInfo.portInfo.port instanceof InputPort))
+      elementInfo.portInfo !== null &&
+      elementInfo.portInfo.port.parentId !== fromPort.parentId &&
+      portsAreDifferentTypes &&
+      !this.connectionManager.hasConnection(elementInfo.portInfo.port)
     );
-  }
-
-  private addComponentDragBehavior() {
-    this.canvasElement.addEventListener(
-      'mousedown',
-      this.handleMouseDownEvent.bind(this),
-    );
-
-    this.canvasElement.addEventListener('mousemove', (e) => {
-      e.preventDefault();
-
-      if (this.componentDragging.isDragging) {
-        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
-
-        this.componentManager.drawableComponent
-          .get(this.componentDragging.componentId)
-          ?.moveTo(
-            this.subtractPosition(worldPosition, this.componentDragging.offset),
-          );
-        this.redraw();
-      }
-    });
-
-    this.canvasElement.addEventListener('mouseup', (e) => {
-      e.preventDefault();
-
-      if (this.componentDragging.isDragging) {
-        const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
-
-        this.componentManager.drawableComponent
-          .get(this.componentDragging.componentId)
-          ?.moveTo(
-            this.subtractPosition(worldPosition, this.componentDragging.offset),
-          );
-        this.redraw();
-      }
-
-      this.componentDragging = {
-        isDragging: false,
-        componentId: '',
-        offset: { x: 0, y: 0 },
-      };
-    });
   }
 
   private redraw() {
@@ -183,22 +110,38 @@ export class SatisfactoryCanvas {
       component.draw(this.ctx);
     });
 
+    this.drawConnections();
+
     this.drawDraggingConnection();
+  }
+
+  private drawConnections() {
+    const connections = this.connectionManager.getConnections();
+
+    for (let index = 0; index < connections.length; index++) {
+      const connection = connections[index];
+
+      const from = this.componentManager.getPortPosition(connection.sourcePort);
+      const to = this.componentManager.getPortPosition(connection.targetPort);
+
+      this.drawLine(from, to);
+    }
   }
 
   private drawDraggingConnection() {
     if (this.connectionDragging.isDragging) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(
-        this.connectionDragging.startPosition.x,
-        this.connectionDragging.startPosition.y,
+      this.drawLine(
+        this.connectionDragging.startPosition,
+        this.connectionDragging.currentMousePosition,
       );
-      this.ctx.lineTo(
-        this.connectionDragging.currentMousePosition.x,
-        this.connectionDragging.currentMousePosition.y,
-      );
-      this.ctx.stroke();
     }
+  }
+
+  private drawLine(from: Position, to: Position) {
+    this.ctx.beginPath();
+    this.ctx.moveTo(from.x, from.y);
+    this.ctx.lineTo(to.x, to.y);
+    this.ctx.stroke();
   }
 
   private resetCanvas() {
@@ -314,35 +257,224 @@ export class SatisfactoryCanvas {
     return this.getWorldCoordinatesFromScreenPosition(screenPosition);
   }
 
-  private handleMouseDownEvent(e: MouseEvent) {
-    e.preventDefault();
+  private handleMouseDownEvent() {
+    this.canvasElement.addEventListener('mousedown', (e) => {
+      e.preventDefault();
 
-    const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+      const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
 
-    const { component, portInfo } =
-      this.componentManager.getElementByPosition(worldPosition);
+      const { component, portInfo } =
+        this.componentManager.getElementByPosition(worldPosition);
 
-    if (portInfo !== null) {
+      if (portInfo !== null) {
+        this.runConnectionDragMouseDownRoutine(worldPosition, portInfo);
+      } else if (component !== null) {
+        this.runComponentDragMouseDownRoutine(worldPosition, component);
+      } else {
+        this.runPanningMouseDownRoutine(e);
+      }
+    });
+  }
+
+  private handleMouseMoveEvent() {
+    this.canvasElement.addEventListener('mousemove', (e) => {
+      e.preventDefault();
+
+      if (this.panning.isPanning) {
+        this.runPanningMouseMoveRoutine(e);
+      }
+      if (this.componentDragging.isDragging) {
+        this.runComponentDragMouseMoveRoutine(e);
+      }
+      if (this.connectionDragging.isDragging) {
+        this.runConnectionDragMouseMoveRoutine(e);
+      }
+    });
+  }
+
+  private handleMouseUpEvent() {
+    this.canvasElement.addEventListener('mouseup', (e) => {
+      e.preventDefault();
+
+      if (this.panning.isPanning) {
+        this.runPanningMouseUpRoutine(e);
+      }
+      if (this.componentDragging.isDragging) {
+        this.runComponentDragMouseUpRoutine(e);
+      }
+      if (this.connectionDragging.isDragging) {
+        this.runConnectionDragMouseUpRoutine(e);
+      }
+    });
+  }
+
+  /**
+   * CONNECTION DRAG
+   */
+  private runConnectionDragMouseDownRoutine(
+    worldPosition: Position,
+    portInfo: PortByPositionInfo,
+  ) {
+    const connectedPort = this.connectionManager.getConnectedPort(
+      portInfo.port,
+    );
+
+    if (connectedPort === null) {
       this.connectionDragging = {
         isDragging: true,
         startPort: portInfo.port,
         startPosition: portInfo.position,
         currentMousePosition: worldPosition,
       };
-    } else if (component !== null) {
-      const offset = this.subtractPosition(worldPosition, component.position);
-
-      this.componentDragging = {
-        isDragging: true,
-        componentId: component.id,
-        offset,
-      };
     } else {
-      this.panning = {
-        isPanning: true,
-        lastPosition: this.getMousePositionFromEvent(e),
+      const sourcePort =
+        portInfo.port instanceof OutputPort ? portInfo.port : connectedPort;
+      const targetPort =
+        portInfo.port instanceof InputPort ? portInfo.port : connectedPort;
+
+      const startPosition =
+        this.componentManager.getPortPosition(connectedPort);
+      this.connectionManager.removeConnection(sourcePort, targetPort);
+      this.connectionDragging = {
+        isDragging: true,
+        startPort: connectedPort,
+        startPosition,
+        currentMousePosition: worldPosition,
       };
     }
+  }
+
+  private runConnectionDragMouseMoveRoutine(e: MouseEvent) {
+    const currentMousePosition = this.getMousePositionFromEvent(e);
+    this.connectionDragging = {
+      ...this.connectionDragging,
+      currentMousePosition,
+    };
+    this.redraw();
+  }
+
+  private runConnectionDragMouseUpRoutine(e: MouseEvent) {
+    const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+    const elementInfo =
+      this.componentManager.getElementByPosition(worldPosition);
+
+    if (
+      this.isValidConnectionTarget(
+        elementInfo,
+        this.connectionDragging.startPort!,
+      )
+    ) {
+      if (elementInfo.portInfo !== null) {
+        const sourcePort =
+          this.connectionDragging.startPort instanceof OutputPort
+            ? this.connectionDragging.startPort
+            : elementInfo.portInfo.port;
+        const targetPort =
+          this.connectionDragging.startPort instanceof InputPort
+            ? this.connectionDragging.startPort
+            : elementInfo.portInfo.port;
+        this.connectionManager.addConnection(sourcePort, targetPort);
+      } else {
+        // target was helper input
+        const helperInputPort = elementInfo.component!.getPortByIndex(0);
+        const helperInputTargetPort =
+          this.connectionManager.getConnectedPort(helperInputPort);
+
+        if (helperInputTargetPort) {
+          this.connectionManager.removeConnection(
+            helperInputPort,
+            helperInputTargetPort,
+          );
+
+          this.connectionManager.addConnection(
+            this.connectionDragging.startPort!,
+            helperInputTargetPort,
+          );
+
+          this.componentManager.removeComponent(elementInfo.component!);
+        }
+      }
+    }
+    this.connectionDragging = {
+      isDragging: false,
+      startPort: null,
+      startPosition: { x: 0, y: 0 },
+      currentMousePosition: { x: 0, y: 0 },
+    };
+
+    this.redraw();
+  }
+
+  /**
+   * PANNING
+   */
+  private runPanningMouseDownRoutine(e: MouseEvent) {
+    this.panning = {
+      isPanning: true,
+      lastPosition: this.getMousePositionFromEvent(e),
+    };
+  }
+
+  private runPanningMouseMoveRoutine(e: MouseEvent) {
+    this.updateOffsetForPanning(e);
+    this.redraw();
+  }
+
+  private runPanningMouseUpRoutine(e: MouseEvent) {
+    this.updateOffsetForPanning(e);
+    this.redraw();
+    this.panning = {
+      isPanning: false,
+      lastPosition: {
+        x: 0,
+        y: 0,
+      },
+    };
+  }
+
+  /**
+   * COMPONENT DRAGGING
+   */
+  private runComponentDragMouseDownRoutine(
+    worldPosition: Position,
+    component: IDrawableComponent,
+  ) {
+    const offset = this.subtractPosition(worldPosition, component.position);
+
+    this.componentDragging = {
+      isDragging: true,
+      componentId: component.id,
+      offset,
+    };
+  }
+
+  private runComponentDragMouseMoveRoutine(e: MouseEvent) {
+    const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+    this.componentManager.drawableComponent
+      .get(this.componentDragging.componentId)
+      ?.moveTo(
+        this.subtractPosition(worldPosition, this.componentDragging.offset),
+      );
+    this.redraw();
+  }
+
+  private runComponentDragMouseUpRoutine(e: MouseEvent) {
+    const worldPosition = this.getWorldCoordinatesFromMouseEvent(e);
+
+    this.componentManager.drawableComponent
+      .get(this.componentDragging.componentId)
+      ?.moveTo(
+        this.subtractPosition(worldPosition, this.componentDragging.offset),
+      );
+    this.redraw();
+
+    this.componentDragging = {
+      isDragging: false,
+      componentId: '',
+      offset: { x: 0, y: 0 },
+    };
   }
 
   private subtractPosition(pos1: Position, pos2: Position): Position {
@@ -350,38 +482,6 @@ export class SatisfactoryCanvas {
       x: pos1.x - pos2.x,
       y: pos1.y - pos2.y,
     };
-  }
-
-  private addPanningBehavior() {
-    this.canvasElement.addEventListener(
-      'mousedown',
-      this.handleMouseDownEvent.bind(this),
-    );
-
-    this.canvasElement.addEventListener('mousemove', (e) => {
-      e.preventDefault();
-
-      if (this.panning.isPanning) {
-        this.updateOffsetForPanning(e);
-        this.redraw();
-      }
-    });
-
-    this.canvasElement.addEventListener('mouseup', (e) => {
-      e.preventDefault();
-
-      if (this.panning.isPanning) {
-        this.updateOffsetForPanning(e);
-        this.redraw();
-      }
-      this.panning = {
-        isPanning: false,
-        lastPosition: {
-          x: 0,
-          y: 0,
-        },
-      };
-    });
   }
 
   private updateOffsetForPanning(e: MouseEvent) {

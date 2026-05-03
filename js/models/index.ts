@@ -33,6 +33,8 @@ export type IDrawableComponent = {
   setPorts(ports: Array<Port>): void;
   contains(position: Position): boolean;
   getPortByPosition(position: Position): PortByPositionInfo | null;
+  getPortPosition(port: Port): Position;
+  getPortByIndex(index: number): Port;
 };
 
 export type ComponentType =
