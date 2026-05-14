@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest';
 import { SatisfactoryCanvas } from './satisfactory-canvas-2';
+import { getCanvasImageHash } from './util';
 
 describe('Satisfactory Canvas', () => {
   let satisfactoryCanvas: SatisfactoryCanvas;
@@ -43,7 +44,11 @@ describe('Satisfactory Canvas', () => {
   });
 
   it('has a background pattern', () => {
-    expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+    expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
+  });
+
+  it('can give back an image', () => {
+    expect(satisfactoryCanvas.getImage()).toMatch(/^data:image\/png;base64,/);
   });
 
   describe('navigating', () => {
@@ -89,12 +94,12 @@ describe('Satisfactory Canvas', () => {
             clientY: end.y,
           });
 
-          expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+          expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
         },
       );
 
       it('does not pan when not clicking the canvas first', () => {
-        const initialPanningImage = satisfactoryCanvas.getImage();
+        const initialPanningImage = getCanvasImageHash(mockCanvasElement);
 
         fireEvent.mouseMove(mockCanvasElement, {
           clientX: 100,
@@ -105,7 +110,7 @@ describe('Satisfactory Canvas', () => {
           clientY: 100,
         });
 
-        expect(satisfactoryCanvas.getImage()).toStrictEqual(
+        expect(getCanvasImageHash(mockCanvasElement)).toStrictEqual(
           initialPanningImage,
         );
       });
@@ -133,7 +138,7 @@ describe('Satisfactory Canvas', () => {
           clientY: 317,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
     });
 
@@ -147,34 +152,36 @@ describe('Satisfactory Canvas', () => {
       it('zooms in by one tick', () => {
         fireEvent.wheel(mockCanvasElement, zoomInEvent);
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
       it('zooms in by multiple ticks', () => {
         fireEvent.wheel(mockCanvasElement, zoomInEvent);
         fireEvent.wheel(mockCanvasElement, zoomInEvent);
         fireEvent.wheel(mockCanvasElement, zoomInEvent);
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
       it('zooms out by one tick', () => {
         fireEvent.wheel(mockCanvasElement, zoomOutEvent);
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
       it('zooms out by multiple ticks', () => {
         fireEvent.wheel(mockCanvasElement, zoomOutEvent);
         fireEvent.wheel(mockCanvasElement, zoomOutEvent);
         fireEvent.wheel(mockCanvasElement, zoomOutEvent);
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
       it('zoom-in and zoom-out intervals are equal', () => {
-        const initialZoomImage = satisfactoryCanvas.getImage();
+        const initialZoomImage = getCanvasImageHash(mockCanvasElement);
 
         fireEvent.wheel(mockCanvasElement, zoomInEvent);
         fireEvent.wheel(mockCanvasElement, zoomOutEvent);
 
-        expect(satisfactoryCanvas.getImage()).toStrictEqual(initialZoomImage);
+        expect(getCanvasImageHash(mockCanvasElement)).toStrictEqual(
+          initialZoomImage,
+        );
       });
     });
   });
@@ -240,7 +247,7 @@ describe('Satisfactory Canvas', () => {
 
           fireEvent.click(optionToClick);
 
-          expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+          expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
         });
       });
     });
@@ -269,7 +276,7 @@ describe('Satisfactory Canvas', () => {
           clientY: 317,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
     });
 
@@ -388,7 +395,7 @@ describe('Satisfactory Canvas', () => {
           clientY: splitterInfo.outPort2.y + 20,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
       it('connects two ports with a line when connected', () => {
         const splitterInfo = drawSplitter(100, 100);
@@ -412,7 +419,7 @@ describe('Satisfactory Canvas', () => {
           clientY: mergerInfo.pos.y + mergerInfo.size - 70,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
 
       it('replaces helper input connection with direct connection, when belt is released on a helper input', () => {
@@ -438,7 +445,7 @@ describe('Satisfactory Canvas', () => {
           clientY: helperInputInfo.pos.y + 5,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
 
       it('detaches connection, when clicking an already connected port', () => {
@@ -463,7 +470,7 @@ describe('Satisfactory Canvas', () => {
           clientY: splitterInfo.outPort2.y + 20,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
 
       it('connects to a new port, when releasing on a valid port type', () => {
@@ -488,7 +495,7 @@ describe('Satisfactory Canvas', () => {
           clientY: mergerInfo.inPort2.y,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
 
       it('does not connect to a new port, when releasing on an invalid port type', () => {
@@ -513,7 +520,7 @@ describe('Satisfactory Canvas', () => {
           clientY: splitterInfo.inPort.y,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
 
       it('does not connect to a new port, when releasing on a port that is already connected', () => {
@@ -539,7 +546,7 @@ describe('Satisfactory Canvas', () => {
           clientY: mergerInfo.inPort1.y,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
 
       it('does not connect to a port, that belongs to the same component', () => {
@@ -554,7 +561,7 @@ describe('Satisfactory Canvas', () => {
           clientY: splitterInfo.inPort.y,
         });
 
-        expect(satisfactoryCanvas.getImage()).toMatchSnapshot();
+        expect(getCanvasImageHash(mockCanvasElement)).toMatchSnapshot();
       });
     });
   });
