@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Satisfactory Canvas > has a background pattern 1`] = `"b06c10a67beca82417dcee5ca2e3abdcbc6f5984eae055842468496ca3c57fa5"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > connects to a new port, when releasing on a valid port type 1`] = `"36ffd14339428cf3b9dab48b4df774864e7532820698bbcdf0516562e7e4a273"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > connects two ports with a line when connected 1`] = `"3092b84398405acd49b825b6e48b8a0f820c7a938dc10bb4a7e5a857abc85e8e"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > detaches connection, when clicking an already connected port 1`] = `"642d3c07215bfde839f475d2651f56b4d4bbcb419e3e450e05d37df022e05036"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > does not connect to a new port, when releasing on a port that is already connected 1`] = `"a35cc16754fe501e47d1a8bdf0318483aca7b258ecba7e04ce98dc4b9dd70016"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > does not connect to a new port, when releasing on an invalid port type 1`] = `"11d25357536dd88473b91227ecef0a7f8524696a8769e67b47c0fa0ed42bb043"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > does not connect to a port, that belongs to the same component 1`] = `"77a3339b5b7a48e570d75756aedb01a45ef6cbdd86728bac2056c4ca5b7f9e58"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > drags line from clicked port to current mouse position 1`] = `"d78ab6483759fc1b282330e5cf6873d797b164e06617b2170e0f4b446024b41d"`;
+
+exports[`Satisfactory Canvas > interacting > connecting components > replaces helper input connection with direct connection, when belt is released on a helper input 1`] = `"2a5d442e4c1624e64d01fb420d7970a2e4cfddfee561a9ce18c82440688b38b5"`;
+
+exports[`Satisfactory Canvas > interacting > context menu display > context menu options > creates a 'Helper Input' 1`] = `"963ccf5b86d61a125d977e97754cfc154d12773f05e0f8aab128531ad923efe6"`;
+
+exports[`Satisfactory Canvas > interacting > context menu display > context menu options > creates a 'Input' 1`] = `"1e1e42f344008e3f4e1ad634e6edaaad9c6e83f81503e1db5f9b98cc471b42bd"`;
+
+exports[`Satisfactory Canvas > interacting > context menu display > context menu options > creates a 'Merger' 1`] = `"6a2bfaa4f8ac4a39cb22910d54a25378a6b6db4919cadfc13902ec0dac7fe234"`;
+
+exports[`Satisfactory Canvas > interacting > context menu display > context menu options > creates a 'Output' 1`] = `"364b0310ad9a20fb3473d03c2ff8bb8926cf45c7cfb890fc87b41667d89af05c"`;
+
+exports[`Satisfactory Canvas > interacting > context menu display > context menu options > creates a 'Splitter' 1`] = `"77a3339b5b7a48e570d75756aedb01a45ef6cbdd86728bac2056c4ca5b7f9e58"`;
+
+exports[`Satisfactory Canvas > interacting > moving components > moves component, when dragging it 1`] = `"e7f6ab29adeb6c49ea8f39c2b098660b2b4f36d5a0c7cc348d4384dfd3ea94f4"`;
+
+exports[`Satisfactory Canvas > navigating > panning > pans to the 'bottom', when mouse is clicked and dragged to the 'top' 1`] = `"ca22ff7124d1b37332a7fddea676d8d90412276e981da3c4f4b3c4e4ceb6a44b"`;
+
+exports[`Satisfactory Canvas > navigating > panning > pans to the 'left', when mouse is clicked and dragged to the 'right' 1`] = `"337605da522b2c900970463ec64874e27d0342e2394d9b12a0ce7f0295a34970"`;
+
+exports[`Satisfactory Canvas > navigating > panning > pans to the 'right', when mouse is clicked and dragged to the 'left' 1`] = `"a3c64c57efb283fa1fb0ad79e021b2b3303a982184f2e91d91cd0f2d9a13ce4a"`;
+
+exports[`Satisfactory Canvas > navigating > panning > pans to the 'top', when mouse is clicked and dragged to the 'bottom' 1`] = `"c974d721a5a0875496b1af57759c67aaffc3320f49c9265df2436a923d960b99"`;
+
+exports[`Satisfactory Canvas > navigating > panning > pans when a component is present, but background was clicked 1`] = `"c7b0f99f3f1b37ca5e5c368f654af730e80e712869457c459f55c44c4689ea42"`;
+
+exports[`Satisfactory Canvas > navigating > zooming > zooms in by multiple ticks 1`] = `"78626269639aa4fd5e00d1ddabb862cad47e19d90232c95035a41eefa563f87f"`;
+
+exports[`Satisfactory Canvas > navigating > zooming > zooms in by one tick 1`] = `"e87d87d3f840e3f0726ca6465a2678838afc2eb816f53ea3ecfd28fb1bfdc382"`;
+
+exports[`Satisfactory Canvas > navigating > zooming > zooms out by multiple ticks 1`] = `"38e53371b39d263388d55537c06351a1074f204d84a786265397b5ec509074bd"`;
+
+exports[`Satisfactory Canvas > navigating > zooming > zooms out by one tick 1`] = `"754b281b1f4ac93bacbb76d7d221f1ed9ec65532331120e61433b0ab5ea4bf12"`;
